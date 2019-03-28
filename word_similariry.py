@@ -4,6 +4,7 @@ import math
 
 dt_r_words = None
 dt_c_words = None
+w = 3
 
 def compute_pmi_score(M):
     f_c = np.sum(M, axis = 0)
@@ -48,10 +49,12 @@ def eval_dataset(M, path):
     print(result)
 
 def EvalWS(M):
+    print("dataset men")
     path = "./data/31190-a1-files/men.txt"
-    eval_dataset(M, path);
+    eval_dataset(M, path)
+    print("dataset simlex-999")
     path = "./data/31190-a1-files/simlex-999.txt"
-    eval_dataset(M, path);
+    eval_dataset(M, path)
     
 def parse_words(word_file):
     file = open(word_file, "r")
@@ -70,7 +73,6 @@ def create_matrix(row_words, col_words, doc_file):
     dt_r_words = build_word_dict(row_words);
     dt_c_words = build_word_dict(col_words);
     file = open(doc_file, "r");
-    w = 3
     index = 0
     low = 0
     high = 0
@@ -113,15 +115,21 @@ def build_word_dict(words):
         index += 1
     return dt_words
 
-def main():
+def evaluate(w_size):
+    global w
+    w = w_size
+    print("w=" + str(w))
     row_words = parse_words("./data/31190-a1-files/vocab-wordsim.txt")
     col_words = parse_words("./data/31190-a1-files/vocab-25k.txt")
     doc_file = "./data/wiki-1percent.txt";
     M = create_matrix(row_words, col_words, doc_file)
+    print("word_context_frequency")
     EvalWS(M)
     C = compute_pmi_score(M)
+    print("word_context_pmi")
     EvalWS(C)
 
 if __name__ == '__main__':
-    main()
-    
+    evaluate(1)
+    evaluate(3)
+    evaluate(6)
