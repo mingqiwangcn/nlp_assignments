@@ -1,8 +1,39 @@
 import numpy as np
+from scipy import stats
+import math
+
+dt_r_words = None
+dt_c_words = None
 
 def EvalWS(M):
-    print(M)
-
+    path = "./data/31190-a1-files/men.txt"
+    file = open(path, "r")
+    men_similarity = []
+    context_similarity = []
+    file.readline()
+    row = 0;
+    for line in file:
+        #print(row)
+        data = line.split()
+        w1 = data[0]
+        w2 = data[1]
+        score1 = float(data[2])
+        men_similarity.append(score1)
+        r1 = dt_r_words[w1]
+        r2 = dt_r_words[w2]
+        dot_r = np.dot(M[r1], M[r2])
+        norm_1 = np.linalg.norm(M[r1])
+        norm_2 = np.linalg.norm(M[r2])
+        norm_product = norm_1 * norm_2
+        if norm_product == 0.0:
+            print("nan")
+        score2 =  dot_r / norm_product
+        context_similarity.append(score2)
+        row += 1
+    
+    result = stats.spearmanr(men_similarity, context_similarity)
+    print(result)
+    
 def parse_words(word_file):
     file = open(word_file, "r")
     words = []
@@ -15,6 +46,8 @@ def create_matrix(row_words, col_words, doc_file):
     m = len(row_words);
     n = len(col_words);
     M = np.zeros((m, n), dtype = int)
+    global dt_r_words
+    global dt_c_words
     dt_r_words = build_word_dict(row_words);
     dt_c_words = build_word_dict(col_words);
     file = open(doc_file, "r");
@@ -45,7 +78,7 @@ def create_matrix(row_words, col_words, doc_file):
             high = m + w + 1
             if high > num_words:
                 high = num_words
-            for index in (low, high):
+            for index in range(low, high):
                 if (m != index) and (index in c_words_in_line):
                     c_word = c_words_in_line[index]
                     c = dt_c_words[c_word]
