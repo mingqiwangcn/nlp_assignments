@@ -6,13 +6,20 @@ dt_r_words = None
 dt_c_words = None
 
 def compute_pmi_score(M):
-    C = np.zeros(M.shape, M.dtype)
     f_c = np.sum(M, axis = 0)
     f_r = np.sum(M, axis = 1)
     f_sum = np.sum(f_r)
+    n = len(f_c)
+    for i in range(n):
+        if f_c[i] == 0:
+            f_c[i] = 1
+    n = len(f_r);
+    for i in range(n):
+        if f_r[i] == 0:
+            f_r[i] = 1
     
-    
-    
+    C = (M * f_sum / f_c) / f_r[:, None]
+    return C;
 
 def eval_dataset(M, path):
     file = open(path, "r")
@@ -112,7 +119,8 @@ def main():
     doc_file = "./data/wiki-1percent.txt";
     M = create_matrix(row_words, col_words, doc_file)
     EvalWS(M)
-    compute_pmi_score(M)
+    C = compute_pmi_score(M)
+    EvalWS(C)
 
 if __name__ == '__main__':
     main()
