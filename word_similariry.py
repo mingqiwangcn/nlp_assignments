@@ -5,34 +5,46 @@ import math
 dt_r_words = None
 dt_c_words = None
 
-def EvalWS(M):
-    path = "./data/31190-a1-files/men.txt"
+def compute_pmi_score(M):
+    C = np.zeros(M.shape, M.dtype)
+    f_c = np.sum(M, axis = 0)
+    f_r = np.sum(M, axis = 1)
+    f_sum = np.sum(f_r)
+    
+    
+    
+
+def eval_dataset(M, path):
     file = open(path, "r")
-    men_similarity = []
+    ref_similarity = []
     context_similarity = []
     file.readline()
-    row = 0;
+    epsilon = 1.0e-9
     for line in file:
-        #print(row)
         data = line.split()
         w1 = data[0]
         w2 = data[1]
         score1 = float(data[2])
-        men_similarity.append(score1)
+        ref_similarity.append(score1)
         r1 = dt_r_words[w1]
         r2 = dt_r_words[w2]
-        dot_r = np.dot(M[r1], M[r2])
         norm_1 = np.linalg.norm(M[r1])
         norm_2 = np.linalg.norm(M[r2])
-        norm_product = norm_1 * norm_2
-        if norm_product == 0.0:
-            print("nan")
-        score2 =  dot_r / norm_product
+        
+        if norm_1 < epsilon or norm_2 < epsilon:
+            score2 = 0
+        else:          
+            score2 =  np.dot(M[r1], M[r2]) / (norm_1 * norm_2)
         context_similarity.append(score2)
-        row += 1
-    
-    result = stats.spearmanr(men_similarity, context_similarity)
+    file.close()
+    result = stats.spearmanr(ref_similarity, context_similarity)
     print(result)
+
+def EvalWS(M):
+    path = "./data/31190-a1-files/men.txt"
+    eval_dataset(M, path);
+    path = "./data/31190-a1-files/simlex-999.txt"
+    eval_dataset(M, path);
     
 def parse_words(word_file):
     file = open(word_file, "r")
@@ -100,6 +112,7 @@ def main():
     doc_file = "./data/wiki-1percent.txt";
     M = create_matrix(row_words, col_words, doc_file)
     EvalWS(M)
+    compute_pmi_score(M)
 
 if __name__ == '__main__':
     main()
