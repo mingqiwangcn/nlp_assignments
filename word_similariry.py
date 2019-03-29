@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import stats
-import math
+import queue
 
 dt_r_words = None
 dt_c_words = None
@@ -19,7 +19,10 @@ def compute_pmi_score(M):
         if f_r[i] == 0:
             f_r[i] = 1
     
-    C = (M * f_sum / f_c) / f_r[:, None]
+    M2 = (M * f_sum / f_c) / f_r[:, None]
+    M2[M2 == 0] = 1
+    C = np.log(M2)
+    C[C < 0] = 0
     return C;
 
 def eval_dataset(M, path):
@@ -129,7 +132,45 @@ def evaluate(w_size):
     print("word_context_pmi")
     EvalWS(C)
 
+def nearest_neighbors(w_size, qry_word, num_neighbors):
+    global w
+    w = w_size
+    print("w=" + str(w))
+    row_words = parse_words("./data/31190-a1-files/vocab-25k.txt")
+    col_words = parse_words("./data/31190-a1-files/vocab-25k.txt")
+    doc_file = "./data/wiki-1percent.txt";
+    M = create_matrix(row_words, col_words, doc_file)
+    C = compute_pmi_score(M)
+    qry_r = dt_r_words[qry_word]
+    que = queue.PriorityQueue()
+    num_rows = C.shape[0]
+    norm_1 = np.linalg.norm(C[qry_r])
+    epsilon = 1.0e-9
+    for i in range(num_rows):
+        if i != qry_r:
+            norm_2 = np.linalg.norm(C[i])
+            if norm_1 < epsilon or norm_2 < epsilon:
+                score = 0
+            else:          
+                score =  np.dot(C[qry_r], C[i]) / (norm_1 * norm_2)
+            tuple = (-score, row_words[i])
+            que.put(tuple)
+    for i in range(num_neighbors):
+        if not que.empty():
+            tuple = que.get()
+            tuple2 = (-tuple[0], tuple[1])
+            print(tuple2)
+    
+def run_1():
+    r_words_file = "./data/31190-a1-files/vocab-wordsim.txt"
+    c_words_file = "./data/31190-a1-files/vocab-25k.txt"
+    evaluate(1, r_words_file, c_words_file)
+    evaluate(3, r_words_file, c_words_file)
+    evaluate(6, r_words_file, c_words_file)
+
+def run_2():
+    nearest_neighbors(1, "monster", 10)
+    nearest_neighbors(6, "monster", 10)
+    
 if __name__ == '__main__':
-    evaluate(1)
-    evaluate(3)
-    evaluate(6)
+    run_2()
