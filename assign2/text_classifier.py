@@ -16,7 +16,7 @@ def compute_x_features():
     N = len(g_train_data)
     M = len(g_labels) 
     D = g_num_features 
-    g_X_features = np.ndarray(shape = (N, M, D), dtype = int)
+    g_X_features = np.ndarray(shape = (N, M, D), dtype = bool)
     
     g_feature_labels = [None] * D
     g_feature_words = [None] * D
