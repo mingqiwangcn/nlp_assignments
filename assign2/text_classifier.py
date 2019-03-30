@@ -2,39 +2,24 @@ import random
 import numpy as np
 
 g_features = []
-g_feature_words = []
-g_feature_labels = []
+g_feature_words = None
+g_feature_labels = None
 g_num_features = 0
-g_X_features = None
+g_X_features = dict()
 g_weights = None
 g_train_data = []
 g_labels = []
 g_eval_data = []
 
-def compute_x_features():
-    global g_X_features
-    N = len(g_train_data)
-    M = len(g_labels) 
-    D = g_num_features 
-    g_X_features = np.ndarray(shape = (N, M, D), dtype = bool)
-    
-    g_feature_labels = [None] * D
-    g_feature_words = [None] * D
-    
-    for i in range(D):
-        g_feature_labels[i] = g_features[i][0]
-        g_feature_words[i] = g_features[i][1]
-    
-    print("compute_x_features")
-    for i in range(N):
-        if (i%1000) == 0:
-            print("i=" + str(i))
-        X = g_train_data[i]
-        for y in g_labels:
-            label_feature = np.equal(g_feature_labels, y)
-            word_feature = np.isin(g_feature_words, X[1])
-            g_X_features[i,y] = np.logical_and(label_feature, word_feature)    
+def get_x_features(X, y):
+    idx = X[2]
+    key = (idx, y)
+    if not key in g_X_features:
+        label_feature = np.equal(g_feature_labels, y)
+        word_feature = np.isin(g_feature_words, X[1])
+        g_X_features[key] = np.logical_and(label_feature, word_feature)
         
+    return g_X_features[key]
     
 
 def load_data(file_path, obj_data, obj_labels, obj_features):
@@ -65,8 +50,7 @@ def load_data(file_path, obj_data, obj_labels, obj_features):
     file.close()
 
 def score(X, y):
-    idx = X[2]
-    f = g_X_features[idx, y]
+    f = get_x_features(X, y)
     ret = np.dot(f, g_weights) 
     return ret
 
@@ -89,6 +73,7 @@ def evaluate(epoc):
     print("epoc=" + str(epoc) + " correct=" + str(correct_ratio) + "%")
     
 def train():
+    global g_weights
     MAX_EPOC = 20
     N = len(g_train_data)
     eta = 0.01
@@ -96,29 +81,26 @@ def train():
         if epoc > 0:
             random.shuffle(g_train_data)
         for i in range(N):
-            print("i=" + str(i))
+            if (i % 1000 == 0):
+                print("i=" + str(i))
             X = g_train_data[i]
-            idx = X[2]
             y = X[0]
             j = 0
-            for j in range(g_num_features):
-                w = g_weights[i]
-                f =  g_X_features[idx, y, j]
-                label_class = predict(X)
-                f_class = g_X_features[idx, label_class, j]
-                w = w + eta * f - eta * f_class
-                g_weights[i] = w
-                
-                if (j % 1000) == 0:
-                    print("j=" + str(j))
-                
-            if (i%20000) == 0:
+            label_class = predict(X)
+            f =  get_x_features(X, y)
+            f_class = get_x_features(X, label_class)
+            g_weights = g_weights + eta * f - eta * f_class
+            
+            if i > 0 and (i%20000 == 0):
                 evaluate(epoc)
+                
         evaluate(epoc)        
 
 def main():
     global g_weights
     global g_num_features
+    global g_feature_labels
+    global g_feature_words
     random.seed(100)
     
     obj_labels = dict()
@@ -129,7 +111,14 @@ def main():
     g_labels.sort()
     g_num_features = len(g_features)
     g_weights = [0.0] * g_num_features
-    compute_x_features()
+    
+    D = g_num_features 
+    g_feature_labels = [None] * D
+    g_feature_words = [None] * D
+    for i in range(D):
+        g_feature_labels[i] = g_features[i][0]
+        g_feature_words[i] = g_features[i][1]
+        
     
     load_data("./data/sst3/sst3.dev", g_eval_data, None, None)
     train()
