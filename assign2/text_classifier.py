@@ -1,26 +1,11 @@
 import random
-import numpy as np
-
-g_features = []
-g_feature_words = None
-g_feature_labels = None
-g_num_features = 0
-g_X_features = dict()
-g_weights = None
+g_features = dict()
 g_train_data = []
 g_labels = []
 g_eval_data = []
-
-def get_x_features(X, y):
-    idx = X[2]
-    key = (idx, y)
-    if not key in g_X_features:
-        label_feature = np.equal(g_feature_labels, y)
-        word_feature = np.isin(g_feature_words, X[1])
-        g_X_features[key] = np.logical_and(label_feature, word_feature)
-        
-    return g_X_features[key]
-    
+g_test_data= []
+g_best_eval_accu = 0
+g_best_test_accu = 0
 
 def load_data(file_path, obj_data, obj_labels, obj_features):
     file = open(file_path, "r")
@@ -37,21 +22,26 @@ def load_data(file_path, obj_data, obj_labels, obj_features):
             
         X = [label, dict(), idx]
         for i in range(num_words_line - 1):
-            if not words[i] in X[1]:
-                X[1][words[i]] = 1
+            feature = (label, words[i])
+            if not feature in X[1]:
+                X[1][feature] = 1
+                
             if obj_features is not None:
-                feature = (label, words[i])
                 if not feature in obj_features:
-                    obj_features[feature] = 1
-                    g_features.append(feature)
-        X[1] = list(X[1].keys())
+                    obj_features[feature] = 0.0 #feature weight
+                    
         obj_data.append(X)
         idx += 1
     file.close()
 
 def score(X, y):
-    f = get_x_features(X, y)
-    ret = np.dot(f, g_weights) 
+    label = X[0]
+    features = X[1].keys()
+    ret = 0.0
+    for f in features:
+        if (label == y):
+            if f in g_features:
+                ret += g_features[f]
     return ret
 
 def predict(X):
@@ -61,17 +51,27 @@ def predict(X):
     index = scores.index(max(scores))
     return g_labels[index]
 
-def evaluate(epoc):
-    N = len(g_eval_data)
+def eval_data(epoc, obj_data, dataset_name):
+    N = len(obj_data)
     num_correct = 0
     for i in range(N):
-        X = g_eval_data[i]
+        X = obj_data[i]
         y = predict(X)
         if y == X[0]:
             num_correct += 1
     correct_ratio = (num_correct / N) * 100
-    print("epoc=" + str(epoc) + " correct=" + str(correct_ratio) + "%")
-    
+    print("[epoc]=%2d [%8s accuracy]=%.2f%%" %(epoc, dataset_name, correct_ratio))
+    return correct_ratio
+
+def evaluate(epoc):
+    global g_best_eval_accu
+    global g_best_test_accu
+    correct_ratio = eval_data(epoc, g_eval_data, "dev")
+    if (correct_ratio > g_best_eval_accu):
+        g_best_eval_accu = correct_ratio
+        test_ratio = eval_data(epoc, g_eval_data, "devtest")
+        if (test_ratio > g_best_test_accu):
+            g_best_test_accu = test_ratio
 def train():
     global g_weights
     MAX_EPOC = 20
@@ -81,15 +81,30 @@ def train():
         if epoc > 0:
             random.shuffle(g_train_data)
         for i in range(N):
-            if (i % 1000 == 0):
-                print("i=" + str(i))
             X = g_train_data[i]
             y = X[0]
-            j = 0
             label_class = predict(X)
-            f =  get_x_features(X, y)
-            f_class = get_x_features(X, label_class)
-            g_weights = g_weights + eta * f - eta * f_class
+            features = X[1].keys()
+            all_features = dict()
+            for f in features:
+                feature = (f[0], f[1])
+                if not feature in all_features:
+                    all_features[feature] = 1
+                feature = (label_class, f[1])
+                if (feature in g_features) and (not feature in all_features):
+                    all_features[feature] = 1
+            
+            for f in all_features.keys():
+                w = g_features[f]
+                f1_val = 1
+                if f[0] != y:
+                    f1_val = 0
+                f2_val = 1
+                if (f[0] != label_class):
+                    f2_val = 0
+                w = w + eta * f1_val - eta * f2_val
+                g_features[f] = w
+                
             
             if i > 0 and (i%20000 == 0):
                 evaluate(epoc)
@@ -97,31 +112,20 @@ def train():
         evaluate(epoc)        
 
 def main():
-    global g_weights
-    global g_num_features
-    global g_feature_labels
-    global g_feature_words
     random.seed(100)
     
     obj_labels = dict()
-    obj_features = dict()
-    load_data("./data/sst3/sst3.train", g_train_data, obj_labels, obj_features)
+    load_data("./data/sst3/sst3.train", g_train_data, obj_labels, g_features)
     obj_labels = None
-    obj_features = None
     g_labels.sort()
-    g_num_features = len(g_features)
-    g_weights = [0.0] * g_num_features
-    
-    D = g_num_features 
-    g_feature_labels = [None] * D
-    g_feature_words = [None] * D
-    for i in range(D):
-        g_feature_labels[i] = g_features[i][0]
-        g_feature_words[i] = g_features[i][1]
-        
     
     load_data("./data/sst3/sst3.dev", g_eval_data, None, None)
+    load_data("./data/sst3/sst3.devtest", g_test_data, None, None)
+    
     train()
+    
+    print("[best test accuracy] = %.2f%%" %(g_best_test_accu))
+    
     return
 
 if __name__ == '__main__':
