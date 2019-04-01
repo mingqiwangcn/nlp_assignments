@@ -5,15 +5,18 @@ import torch.nn as nn
 
 W_D = 50
 D_H = 128
-MAX_EPOC = 20
+MAX_EPOC = 3
 g_w = 1
 g_context_size = 2 * g_w + 1
 D_in = g_context_size * W_D
 g_embedding = dict()
 g_labels = dict()
-g_train_data = ()
-g_eval_data = ()
-g_test_data = ()
+g_train_data = [None, None]
+g_eval_data = [None, None]
+g_test_data = [None, None]
+
+g_best_eval_accu = 0
+g_best_test_accu = 0
 
 def load_embedding():
     file = open("./data/embeddings-twitter.txt")
@@ -28,7 +31,7 @@ def load_embedding():
         g_embedding[w] = embedding
     file.close() 
 
-def load_data(file_path, obj_labels):
+def load_data(file_path, obj_labels = None):
     file = open(file_path)
     item_lst = []
     for line in file:
@@ -45,8 +48,9 @@ def load_data(file_path, obj_labels):
                 obj_labels[item[1]] = idx;
                 idx += 1
     
+    D_out = len(g_labels.values())
     obj_X = torch.empty((N, D_in), dtype=torch.float)
-    obj_Y = torch.empty((N), dtype=torch.int)
+    obj_Y = torch.empty(N, dtype=torch.long)
     word = ""
     for i in range(N):
         idx = 0
@@ -61,10 +65,35 @@ def load_data(file_path, obj_labels):
             for m in range(W_D):
                 obj_X[i, idx + m] = embedding[m]
             idx += W_D
-        label = item_lst[i][1]
-        obj_Y[i] = g_labels[label]
+        str_label = item_lst[i][1]
+        label = g_labels[str_label]
+        obj_Y[i] = label
+        
     return obj_X, obj_Y
+
+def evaluate(model, epoc):
+    global g_best_eval_accu
+    global g_best_test_accu
     
+    e_X = g_eval_data[0]
+    e_Y = g_eval_data[1]
+    Y_pred = model(e_X).argmax(1)
+    num_correct = (e_Y == Y_pred).sum().item()
+    N = e_X.shape[0]
+    eval_ratio = num_correct / N
+    if (eval_ratio > g_best_eval_accu):
+        print("[epoc=%d][eval accuracy]=%.2f" %(epoc, eval_ratio))
+        g_best_eval_accu = eval_ratio
+        t_X = g_test_data[0]
+        t_Y = g_test_data[1]
+        Y_pred_test = model(t_X).argmax(1)
+        num_correct_test = (t_Y == Y_pred_test).sum().item()
+        test_ratio = num_correct_test / t_X.shape[0]
+        if (test_ratio > g_best_test_accu):
+            g_best_test_accu = test_ratio
+            print("[epoc=%d][test accuracy]=%.2f" %(epoc, test_ratio))
+    
+        
 def train():
     D_out = len(g_labels.values())
     model = nn.Sequential(
@@ -73,21 +102,19 @@ def train():
         nn.Linear(D_H, D_out)
         )
     loss_fn = nn.CrossEntropyLoss()
-    learning_rate = 1e-4
-    optimizer = optim.Adam(model.parameters(), lr = learning_rate)
+    learing_rate = 1e-3
+    optimizer = optim.Adam(model.parameters(), lr = learing_rate)
     
     X = g_train_data[0]
     Y = g_train_data[1]
     N = X.shape[0]
     batch_size = 1
-    num_batches = N / batch_size
+    num_batches = int(N / batch_size)
     if N % batch_size:
         num_batches + 1
         
     for epoc in range(MAX_EPOC):
-        if epoc > 0:
-            X = X[torch.randperm(X.size()[0])]
-        for m in num_batches:
+        for m in range(num_batches):
             m1 = m
             m2 = m + batch_size
             if (m == num_batches - 1):
@@ -96,15 +123,19 @@ def train():
             Y_m = Y[m1:m2] 
             y_pred = model(X_m)
             loss = loss_fn(y_pred, Y_m)
-            print(epoc, loss.item())
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            if (m > 0 and m % 1000 == 0):
+                print(epoc, loss.item())
+                evaluate(model, epoc)
+    
+    print("best_test_accu=%.2f" %(g_best_test_accu))
     
 def main():
     load_embedding()
     
-    X, Y = load_data("./data/tweet-pos/tweets-d.txt", g_labels)
+    X, Y = load_data("./data/tweet-pos/tweets-train.txt", g_labels)
     g_train_data[0] = X
     g_train_data[1] = Y
     
