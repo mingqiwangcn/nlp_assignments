@@ -74,7 +74,7 @@ def load_data(file_path, obj_labels = None):
 def evaluate(model, epoc):
     global g_best_eval_accu
     global g_best_test_accu
-    
+    model.eval()
     e_X = g_eval_data[0]
     e_Y = g_eval_data[1]
     Y_pred = model(e_X).argmax(1)
@@ -93,7 +93,7 @@ def evaluate(model, epoc):
             g_best_test_accu = test_ratio
             print("[epoc=%d][test accuracy]=%.2f" %(epoc, test_ratio))
     
-        
+    model.train()
 def train():
     D_out = len(g_labels.values())
     model = nn.Sequential(
