@@ -33,11 +33,14 @@ class LSTMLogLoss(nn.Module):
         return scores
 
 class LSTMBinaryLogLoss(nn.Module):
-    def __init__(self, embedding_dim, hidden_dim, corpus_size):
+    def __init__(self, embedding_dim, hidden_dim, word_idxes):
         super(LSTMBinaryLogLoss, self).__init__()
+        corpus_size = len(word_idxes)
+        self.word_idxes = torch.tensor(word_idxes, dtype = torch.long)
         self.hidden_dim = hidden_dim
         self.in_word_embeddings = nn.Embedding(corpus_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.out_word_embeddings = nn.Embedding(corpus_size, hidden_dim)
         
     def forward(self, word_idxs, ):
         N = len(word_idxs)
@@ -45,19 +48,17 @@ class LSTMBinaryLogLoss(nn.Module):
         lstm_out, _ = self.lstm(in_embeds.view(N, 1, -1))
         hidden_state = lstm_out.view(N, -1)
         
-        label_size = len(word_to_idx.keys())
         if (not self.training):
-            for i in range(N):
-                hidden = hidden_state[i];
-                for j in range(label_size)
-                    return
-        
+            label_embs = self.out_word_embeddings(self.word_idxes)
+            scores = hidden_state.mm(label_embs.t())
+            return scores 
+                
         return hidden_state
 
 class BinaryLogLoss(nn.Module):
-    def __init__(self, corpus_size, hidden_dim, neg_distr, num_neg_samples):
+    def __init__(self, out_word_embeddings, neg_distr, num_neg_samples):
         super(BinaryLogLoss, self).__init__()
-        self.out_word_embeddings = nn.Embedding(corpus_size, hidden_dim)
+        self.out_word_embeddings = out_word_embeddings
         self.log_sig = nn.LogSigmoid()
         self.neg_distr = neg_distr
         self.num_neg_samples = num_neg_samples
@@ -184,7 +185,7 @@ def eval_lm(model, loss_fn, epocs):
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
     N = len(training_data)
-    M = 3500
+    #M = 3500
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
@@ -198,8 +199,8 @@ def eval_lm(model, loss_fn, epocs):
             loss.backward()
             optimizer.step()
             itr += 1
-            if (itr % M == 0 or itr == N):
-                print("epoc=%d loss=%f]" %(epoc, loss.item()))
+            if (itr == N):
+                print("epoc=%d loss=%f" %(epoc, loss.item()))
                 evaluate(epoc, model)
     
     print("best_test_accu=%.2f" %(best_test_accu))        
