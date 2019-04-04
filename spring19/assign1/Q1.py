@@ -1,4 +1,4 @@
-import nlp_assignments.spring19.assign1.lm as lm
+import lm as lm
 import torch.nn as nn
 
 def main():

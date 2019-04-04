@@ -1,4 +1,4 @@
-import nlp_assignments.spring19.assign1.lm as lm
+import lm as lm
 
 def main():
     lm.load_data()
