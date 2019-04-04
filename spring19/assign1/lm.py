@@ -8,6 +8,7 @@ HIDDEN_DIM = 128
 
 EPOCS = 10
 word_to_idx = {}
+word_freqs = {}
 training_data = []
 eval_data = []
 test_data = []
@@ -55,6 +56,15 @@ class BinaryLogLoss(nn.Module):
         sig_scores = -self.log_sig(scores)
         
         return
+
+def init_word_distr():
+    
+    
+    
+
+def init_unigf_pmf(words, probs, f):
+    
+    return e, p
 
 def load_corpus():
     path = "./31210-s19-hw1/bobsue.voc.txt"
