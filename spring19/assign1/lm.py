@@ -181,7 +181,7 @@ def load_data():
     load_dataset("./31210-s19-hw1/bobsue.lm.test.txt", test_data)
 
 def eval_lm(model, loss_fn, epocs):
-    torch.manual_seed(1)
+    #torch.manual_seed(1)
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
     N = len(training_data)
