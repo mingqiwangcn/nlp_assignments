@@ -73,6 +73,7 @@ class BinaryLogLoss(nn.Module):
         sig_scores = self.log_sig(scores)
         total_score = sig_scores.sum()
         N = len(label_idxex)
+        '''
         for i in range(N):
             neg_idxes = self.neg_distr.sampling(self.num_neg_samples)
             neg_embeds = self.out_word_embeddings(neg_idxes)
@@ -80,7 +81,17 @@ class BinaryLogLoss(nn.Module):
             neg_score = -torch.mm(neg_embeds, hidden) #note:1-sigmod(x)=sigmod(-x)
             neg_sig_scores = (self.log_sig(neg_score)).mean()
             total_score += neg_sig_scores
-            
+        '''    
+        neg_idxes = self.neg_distr.sampling(self.num_neg_samples * N)
+        neg_embeds = self.out_word_embeddings(neg_idxes)
+        neg_embeds_expand = neg_embeds.view(N, self.num_neg_samples, -1)
+        hidden_state_expand = hidden_state.view(N, 1, -1)
+        sample_scores = (neg_embeds_expand * hidden_state_expand).sum(dim = 2)
+        neg_scores = -sample_scores
+        neg_sig_scores = self.log_sig(neg_scores).mean(dim = 1)
+        neg_sig_scores_sum = neg_sig_scores.sum()
+        total_score += neg_sig_scores_sum
+        
         loss = -total_score
         return loss
 
@@ -189,7 +200,7 @@ def eval_lm(model, loss_fn, epocs):
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
     N = len(training_data)
-    #M = 3500
+    #M = 1000
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
