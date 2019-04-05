@@ -67,7 +67,6 @@ class BinaryLogLoss(nn.Module):
         scores = (hidden_state * out_embeds).sum(dim=1)
         sig_scores = self.log_sig(scores)
         total_score = sig_scores.sum()
-        
         N = len(label_idxex)
         for i in range(N):
             neg_idxes = self.neg_distr.sampling(self.num_neg_samples)
@@ -92,7 +91,7 @@ class UniformDistr(Distribution):
         self.word_idxes = word_idxes
     
     def sampling(self, N):
-        samples = np.random.choice(self.word_idxes, N)
+        samples = np.random.choice(self.word_idxes, N, replace = False)
         return torch.from_numpy(samples)
 
 class UnigfDistr(Distribution):
@@ -107,7 +106,7 @@ class UnigfDistr(Distribution):
         self.probs = probs
     
     def sampling(self, N):
-        samples = np.random.choice(self.idxes, N, p = self.probs) 
+        samples = np.random.choice(self.idxes, N, replace = False, p = self.probs) 
         return torch.from_numpy(samples)
 
 def normalize_weights(weights):
