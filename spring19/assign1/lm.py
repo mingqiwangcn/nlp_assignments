@@ -29,7 +29,8 @@ class LSTMLogLoss(nn.Module):
         N = len(word_idxs)
         embeds = self.word_embeddings(word_idxs)
         lstm_out, _ = self.lstm(embeds.view(N, 1, -1))
-        scores = self.hidden_to_label(lstm_out.view(N, -1))
+        hidden_state = lstm_out.view(N, -1)
+        scores = self.hidden_to_label(hidden_state)
         return scores
 
 class LSTMBinaryLogLoss(nn.Module):
