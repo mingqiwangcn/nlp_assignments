@@ -74,15 +74,6 @@ class BinaryLogLoss(nn.Module):
         sig_scores = self.log_sig(scores)
         total_score = sig_scores.sum()
         N = len(label_idxex)
-        '''
-        for i in range(N):
-            neg_idxes = self.neg_distr.sampling(self.num_neg_samples)
-            neg_embeds = self.out_word_embeddings(neg_idxes)
-            hidden = hidden_state[i].reshape(hidden_state.shape[1], 1)
-            neg_score = -torch.mm(neg_embeds, hidden) #note:1-sigmod(x)=sigmod(-x)
-            neg_sig_scores = (self.log_sig(neg_score)).mean()
-            total_score += neg_sig_scores
-        '''    
         neg_idxes = self.neg_distr.sampling(self.num_neg_samples * N)
         neg_embeds = self.out_word_embeddings(neg_idxes)
         neg_embeds_expand = neg_embeds.view(N, self.num_neg_samples, -1)
