@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import time
 
 IN_EMBEDDING_DIM = 128
 OUT_EMBEDDING_DIM = 128
