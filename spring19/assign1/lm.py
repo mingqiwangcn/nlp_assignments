@@ -42,7 +42,7 @@ class LSTMBinaryLogLoss(nn.Module):
         self.hidden_dim = hidden_dim
         self.in_word_embeddings = nn.Embedding(corpus_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-        self.out_word_embeddings = nn.Embedding(corpus_size, hidden_dim)
+        self.out_word_embeddings = self.in_word_embeddings #nn.Embedding(corpus_size, hidden_dim)
         
     def forward(self, word_idxs):
         N = len(word_idxs)
@@ -71,20 +71,17 @@ class BinaryLogLoss(nn.Module):
         self.num_neg_samples = num_neg_samples
     def forward(self, hidden_state, label_idxex):
         out_embeds = self.out_word_embeddings(label_idxex)
-        scores = (hidden_state * out_embeds).sum(dim=1)
-        sig_scores = self.log_sig(scores)
-        total_score = sig_scores.sum()
         N = len(label_idxex)
         neg_idxes = self.neg_distr.sampling(self.num_neg_samples * N)
         neg_embeds = self.out_word_embeddings(neg_idxes)
-        neg_embeds_expand = neg_embeds.view(N, self.num_neg_samples, -1)
-        hidden_state_expand = hidden_state.view(N, 1, -1)
-        sample_scores = (neg_embeds_expand * hidden_state_expand).sum(dim = 2)
-        neg_scores = -sample_scores
-        neg_sig_scores = self.log_sig(neg_scores).mean(dim = 1)
-        neg_sig_scores_sum = neg_sig_scores.sum()
-        total_score += neg_sig_scores_sum
-        
+        neg_embeds_3d = neg_embeds.view(N, self.num_neg_samples, -1)
+        hidden_state_3d = hidden_state.view(N, 1, -1)
+        out_embeds_3d = out_embeds.view(N, 1, -1)
+        label_embeds = torch.cat((out_embeds_3d, neg_embeds_3d), dim = 1)
+        label_scores = (label_embeds * hidden_state_3d).sum(dim = 2)
+        label_scores[:,1:] = -label_scores[:,1:]
+        label_sig_scores = self.log_sig(label_scores)
+        total_score = (label_sig_scores[:,0] + label_sig_scores[:,1:].mean(dim = 1)).sum()
         loss = -total_score
         return loss
 
