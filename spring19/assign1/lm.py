@@ -26,11 +26,12 @@ class LSTMLogLoss(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
         self.hidden_to_label = nn.Linear(hidden_dim, labels_size)
         
-    def forward(self, word_idxs):
+    def forward(self, word_idxs, start_pos = 0):
         N = len(word_idxs)
         embeds = self.word_embeddings(word_idxs)
         lstm_out, _ = self.lstm(embeds.view(N, 1, -1))
         hidden_state = lstm_out.view(N, -1)
+        hidden_state = hidden_state[start_pos:,:]    
         scores = self.hidden_to_label(hidden_state)
         return scores
 
@@ -151,15 +152,32 @@ def load_dataset(path, ret_data):
             
         X = word_idxs[:(num_words-1)]
         Y = word_idxs[1:]
-        item = (X, Y)
+        item = (X, Y, 0)
+        ret_data.append(item)
+
+def load_prevsent_dataset(path, ret_data):
+    file = open(path, "r")
+    for line in file:
+        words = line.split()
+        num_words = len(words)
+        word_idxs = [None] * num_words
+        for i in range(num_words):
+            word_idxs[i] = word_to_idx[words[i]]
+            
+        X = word_idxs[:(num_words-1)]
+        Y = word_idxs[1:]
+        strt_idx = word_to_idx["<s>"]
+        start_pos = Y.index(strt_idx)
+        item = (X, Y, start_pos)
         ret_data.append(item)
 
 def evaluate_dataset(model, data):
     num_items = 0
     num_correct = 0
-    for X, Y in data:
+    for X, Y, start_pos in data:
         ts_X = torch.tensor(X, dtype = torch.long)
         ts_Y = torch.tensor(Y, dtype = torch.long)
+        ts_Y = ts_Y[start_pos:]
         Y_pred = model(ts_X).argmax(1)
         num_items += ts_X.shape[0]
         num_correct += (ts_Y == Y_pred).sum().item()
@@ -185,6 +203,12 @@ def load_data():
     load_dataset("./31210-s19-hw1/bobsue.lm.dev.txt", eval_data)
     load_dataset("./31210-s19-hw1/bobsue.lm.test.txt", test_data)
 
+def load_prevsent_data():
+    load_corpus()
+    load_prevsent_dataset("./31210-s19-hw1/bobsue.prevsent.train.tsv", training_data)
+    load_prevsent_dataset("./31210-s19-hw1/bobsue.prevsent.dev.tsv", eval_data)
+    load_prevsent_dataset("./31210-s19-hw1/bobsue.prevsent.test.tsv", test_data)
+
 def eval_lm(model, loss_fn, epocs):
     #torch.manual_seed(1)
     learing_rate = 1e-3
@@ -195,11 +219,12 @@ def eval_lm(model, loss_fn, epocs):
         if epoc > 0:
             random.shuffle(training_data)
         itr = 0
-        for X, Y in training_data:
+        for X, Y, start_pos in training_data:
             model.zero_grad()
             ts_X = torch.tensor(X, dtype = torch.long)
             ts_Y = torch.tensor(Y, dtype = torch.long)
-            label_scores = model(ts_X)
+            ts_Y = ts_Y[start_pos:]
+            label_scores = model(ts_X, start_pos)
             loss = loss_fn(label_scores, ts_Y)
             loss.backward()
             optimizer.step()
