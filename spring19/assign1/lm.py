@@ -178,7 +178,7 @@ def evaluate_dataset(model, data):
         ts_X = torch.tensor(X, dtype = torch.long)
         ts_Y = torch.tensor(Y, dtype = torch.long)
         ts_Y = ts_Y[start_pos:]
-        Y_pred = model(ts_X).argmax(1)
+        Y_pred = model(ts_X, start_pos).argmax(1)
         num_items += ts_X.shape[0]
         num_correct += (ts_Y == Y_pred).sum().item()
     return num_correct / num_items 
