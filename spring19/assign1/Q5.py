@@ -1,11 +1,7 @@
 import lm as lm
 import time
-import sys
 
 def main():
-    epocs = 1
-    if len(sys.argv) > 1:
-        epocs = int(sys.argv[1])    
     t1 = time.time()
     lm.load_data()
     word_idxes = list(lm.word_to_idx.values())
@@ -13,8 +9,8 @@ def main():
     neg_distr = lm.UniformDistr(word_idxes)
     r = 20
     loss_fn = lm.BinaryLogLoss(model.out_word_embeddings, neg_distr, r)
-    lm.eval_lm(model, loss_fn, epocs)
+    lm.eval_lm(model, loss_fn, epocs = 1)
     t2 = time.time()
-    print("Q3.2 time:%.3f" %(t2-t1))
+    print(t2-t1)
 if __name__ == '__main__':
     main()
