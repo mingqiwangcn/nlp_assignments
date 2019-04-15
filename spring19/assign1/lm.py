@@ -45,7 +45,7 @@ class LSTMBinaryLogLoss(nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
         self.out_word_embeddings = self.in_word_embeddings #nn.Embedding(corpus_size, hidden_dim)
         
-    def forward(self, word_idxs):
+    def forward(self, word_idxs, start_pos = 0):
         N = len(word_idxs)
         in_embeds = self.in_word_embeddings(word_idxs)
         lstm_out, _ = self.lstm(in_embeds.view(N, 1, -1))
