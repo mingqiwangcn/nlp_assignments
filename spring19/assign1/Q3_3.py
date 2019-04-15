@@ -14,7 +14,7 @@ def main():
     lm.load_data()
     word_idxes = list(lm.word_to_idx.values())
     model =  lm.LSTMBinaryLogLoss(lm.OUT_EMBEDDING_DIM, lm.HIDDEN_DIM, word_idxes)
-    neg_distr = lm.UnigfDistr(word_idxes, f)
+    neg_distr = lm.UnigfDistr(word_idxes, lm.word_freqs, f)
     loss_fn = lm.BinaryLogLoss(model.out_word_embeddings, neg_distr, r)
     lm.eval_lm(model, loss_fn, epocs)
     t2 = time.time()

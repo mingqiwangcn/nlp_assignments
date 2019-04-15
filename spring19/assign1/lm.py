@@ -102,12 +102,15 @@ class UniformDistr(Distribution):
         return torch.from_numpy(samples)
 
 class UnigfDistr(Distribution):
-    def __init__(self, idxes, weights, f):
-        super(UniformDistr, self).__init__()
+    def __init__(self, idxes, word_freqs, f):
+        super(UnigfDistr, self).__init__()
         self.idxes = idxes
         num_words = len(idxes)
+        weights = [None] * num_words
         for i in range(num_words):
-            freq = word_freqs[idxes[i]]
+            freq = 0
+            if idxes[i] in word_freqs:
+                freq = word_freqs[idxes[i]]
             weights[i] = freq**f
         probs = normalize_weights(weights)
         self.probs = probs
