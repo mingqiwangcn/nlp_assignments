@@ -167,7 +167,7 @@ def load_prevsent_dataset(path, ret_data):
         X = word_idxs[:(num_words-1)]
         Y = word_idxs[1:]
         strt_idx = word_to_idx["<s>"]
-        start_pos = 0# Y.index(strt_idx)
+        start_pos = Y.index(strt_idx)
         item = (X, Y, start_pos)
         ret_data.append(item)
 
