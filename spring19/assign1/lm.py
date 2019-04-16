@@ -252,26 +252,12 @@ def eval_lm(model, loss_fn, epocs):
     print("best_test_accu=%.2f" %(best_test_accu))
 
 def list_errors(N):
-    errors = sorted(freq_errors.items(), key=lambda x: x[1])
-    error_count = len(errors)
-    i = 0
-    j = error_count - 1
-    err_str = ""
-    print("Top 35 errors")
-    while (i < N):
-        if (j >= 0):
-            y_g = errors[j][0][0]
-            y_p = errors[j][0][1]
-            freq = errors[j][1]
-            word_g = all_words[y_g]
-            word_p = all_words[y_p]
-            str1 = "(%s %s %d)" %(word_g, word_p, freq)
-            err_str = err_str.join(" ")
-            err_str = err_str.join(str1)
-            if (i % 7) == 0:
-                print(err_str)
-                err_str = ""
-            j -= 1
-        else:
-            break
-        i += 1
+    pair_errors = {}
+    for id_pair in freq_errors:
+        word_g = all_words[id_pair[0]]
+        word_p = all_words[id_pair[1]]
+        pair_errors[(word_g, word_p)] = freq_errors[id_pair]
+    
+    sorted_items = sorted(pair_errors.items(), key=lambda x: x[1])
+    top_errors = sorted_items[-N:]
+    print(top_errors)
