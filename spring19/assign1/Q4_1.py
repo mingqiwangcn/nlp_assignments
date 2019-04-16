@@ -8,6 +8,7 @@ def main():
     if len(sys.argv) > 1:
         epocs = int(sys.argv[1])
     t1 = time.time()
+    lm.show_errors = True
     lm.load_prevsent_data()
     corpus_size = len(lm.word_to_idx)
     labels_size = corpus_size

@@ -188,7 +188,7 @@ def evaluate_dataset(model, data, is_test = False):
         ts_Y = torch.tensor(Y, dtype = torch.long)
         ts_Y = ts_Y[start_pos:]
         Y_pred = model(ts_X, start_pos).argmax(1)
-        num_items += ts_X.shape[0]
+        num_items += ts_Y.shape[0]
         check_rt = (ts_Y == Y_pred)
         num_correct += check_rt.sum().item()
         if show_errors and is_test:
@@ -261,6 +261,6 @@ def list_errors(N):
         word_p = all_words[id_pair[1]]
         pair_errors[(word_g, word_p)] = freq_errors[id_pair]
     
-    sorted_items = sorted(pair_errors.items(), key=lambda x: x[1])
-    top_errors = sorted_items[-N:]
+    sorted_items = sorted(pair_errors.items(), key=lambda x: x[1], reverse = True)
+    top_errors = sorted_items[0:N]
     print(top_errors)
