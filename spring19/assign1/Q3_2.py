@@ -17,6 +17,6 @@ def main():
     loss_fn = lm.BinaryLogLoss(model.out_word_embeddings, neg_distr, r)
     lm.eval_lm(model, loss_fn, epocs)
     t2 = time.time()
-    print("Q3_2 r=%d time:%.3f" %(r, t2-t1))
+    print("Q3_2 r=%d time=%.3f" %(r, t2-t1))
 if __name__ == '__main__':
     main()
