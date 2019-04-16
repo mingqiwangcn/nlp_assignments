@@ -3,17 +3,20 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-import time
+
 
 IN_EMBEDDING_DIM = 128
 OUT_EMBEDDING_DIM = 128
 HIDDEN_DIM = 128
 
+all_words = []
 word_to_idx = {}
 word_freqs = {}
 training_data = []
 eval_data = []
 test_data = []
+show_errors = False
+freq_errors = {}
 best_eval_accu = 0
 best_test_accu = 0
 
@@ -138,6 +141,7 @@ def load_corpus():
     for word in file:
         word = word[:len(word)-1]
         word_to_idx[word] = idx
+        all_words.append(word)
         idx += 1
 
 def load_dataset(path, ret_data):
@@ -166,7 +170,6 @@ def load_prevsent_dataset(path, ret_data):
         word_idxs = [None] * num_words
         for i in range(num_words):
             word_idxs[i] = word_to_idx[words[i]]
-            
         X = word_idxs[:(num_words-1)]
         Y = word_idxs[1:]
         strt_idx = word_to_idx["<s>"]
@@ -174,7 +177,7 @@ def load_prevsent_dataset(path, ret_data):
         item = (X, Y, start_pos)
         ret_data.append(item)
 
-def evaluate_dataset(model, data):
+def evaluate_dataset(model, data, is_test = False):
     num_items = 0
     num_correct = 0
     for X, Y, start_pos in data:
@@ -183,18 +186,28 @@ def evaluate_dataset(model, data):
         ts_Y = ts_Y[start_pos:]
         Y_pred = model(ts_X, start_pos).argmax(1)
         num_items += ts_X.shape[0]
-        num_correct += (ts_Y == Y_pred).sum().item()
+        check_rt = (ts_Y == Y_pred)
+        num_correct += check_rt.sum().item()
+        if show_errors and is_test:
+            for i in range(len(check_rt)):
+                if check_rt[i] == 0:
+                    e_pair = (ts_Y[i].item(), Y_pred[i].item())
+                    e_count = 0
+                    if e_pair in freq_errors:
+                        e_count = freq_errors[e_pair]
+                    e_count += 1
+                    freq_errors[e_pair] = e_count
     return num_correct / num_items 
 
 def evaluate(epoc, model):
     global best_eval_accu
     global best_test_accu
     model.eval()
-    eval_ratio = evaluate_dataset(model, eval_data)
+    eval_ratio = evaluate_dataset(model, eval_data, is_test = False)
     if (eval_ratio > best_eval_accu):
         best_eval_accu = eval_ratio
         print("epoc=%d eval accuracy=%.2f" %(epoc, eval_ratio))
-        test_ratio = evaluate_dataset(model, test_data)
+        test_ratio = evaluate_dataset(model, test_data, is_test = True)
         if (test_ratio > best_test_accu):
             best_test_accu = test_ratio
             print("epoc=%d test accuracy=%.2f" %(epoc, test_ratio))
@@ -217,7 +230,7 @@ def eval_lm(model, loss_fn, epocs):
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
     N = len(training_data)
-    #M = 1000
+    M = N / 2
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
@@ -232,8 +245,29 @@ def eval_lm(model, loss_fn, epocs):
             loss.backward()
             optimizer.step()
             itr += 1
-            if (itr == N):
-                print("epoc=%d loss=%f" %(epoc, loss.item()))
+            if (itr == M or itr == N):
+                print("epoc=%d itr=%d loss=%f" %(epoc, itr, loss.item()))
                 evaluate(epoc, model)
     
-    print("best_test_accu=%.2f" %(best_test_accu))        
+    print("best_test_accu=%.2f" %(best_test_accu))
+
+def list_errors(N):
+    errors = sorted(freq_errors.items(), key=lambda x: x[1])
+    error_count = len(errors)
+    i = 0
+    j = error_count - 1
+    rt_lst = []
+    while (i < N):
+        if (j >= 0):
+            y_g = errors[j][0][0]
+            y_p = errors[j][0][1]
+            freq = errors[j][1]
+            word_g = all_words[y_g]
+            word_p = all_words[y_p]
+            word_pair = (word_g, word_p, freq)
+            rt_lst.append(word_pair)
+            j -= 1
+        else:
+            break
+        i += 1
+    return rt_lst
