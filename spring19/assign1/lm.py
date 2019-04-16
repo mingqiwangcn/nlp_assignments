@@ -264,7 +264,7 @@ def list_errors(N):
             freq = errors[j][1]
             word_g = all_words[y_g]
             word_p = all_words[y_p]
-            print("(%s   %s)   %d" %(word_g, word_p, freq))
+            print("%s   %s   %d" %(word_g, word_p, freq))
             j -= 1
         else:
             break
