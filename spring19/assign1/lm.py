@@ -261,5 +261,5 @@ def list_errors(N):
         pair_errors[(word_g, word_p)] = freq_errors[id_pair]
     
     sorted_items = sorted(pair_errors.items(), key=lambda x: x[1], reverse = True)
-    top_errors = sorted_items
+    top_errors = sorted_items[0:N]
     print(top_errors)
