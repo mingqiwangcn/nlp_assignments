@@ -269,7 +269,7 @@ def list_errors(N):
             err_str = err_str.join(" ")
             err_str = err_str.join(str1)
             if (i % 7) == 0:
-                print(str)
+                print(err_str)
                 err_str = ""
             j -= 1
         else:
