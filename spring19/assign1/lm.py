@@ -16,7 +16,7 @@ training_data = []
 eval_data = []
 test_data = []
 show_errors = False
-freq_errors = {}
+freq_errors = None
 best_eval_accu = 0
 best_test_accu = 0
 
@@ -189,6 +189,8 @@ def evaluate_dataset(model, data, is_test = False):
         check_rt = (ts_Y == Y_pred)
         num_correct += check_rt.sum().item()
         if show_errors and is_test:
+            global freq_errors
+            freq_errors = {}
             for i in range(len(check_rt)):
                 if check_rt[i] == 0:
                     e_pair = (ts_Y[i].item(), Y_pred[i].item())
