@@ -101,7 +101,7 @@ class UniformDistr(Distribution):
         self.word_idxes = word_idxes
     
     def sampling(self, N):
-        samples = np.random.choice(self.word_idxes, N, replace = False)
+        samples = np.random.choice(self.word_idxes, N, replace = True)
         return torch.from_numpy(samples)
 
 class UnigfDistr(Distribution):
@@ -119,7 +119,7 @@ class UnigfDistr(Distribution):
         self.probs = probs
     
     def sampling(self, N):
-        samples = np.random.choice(self.idxes, N, replace = False, p = self.probs) 
+        samples = np.random.choice(self.idxes, N, replace = True, p = self.probs) 
         return torch.from_numpy(samples)
 
 def normalize_weights(weights):
