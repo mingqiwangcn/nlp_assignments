@@ -256,7 +256,7 @@ def list_errors(N):
     error_count = len(errors)
     i = 0
     j = error_count - 1
-    rt_lst = []
+    print("Top 35 errors")
     while (i < N):
         if (j >= 0):
             y_g = errors[j][0][0]
@@ -265,9 +265,8 @@ def list_errors(N):
             word_g = all_words[y_g]
             word_p = all_words[y_p]
             word_pair = (word_g, word_p, freq)
-            rt_lst.append(word_pair)
+            print(word_pair)
             j -= 1
         else:
             break
         i += 1
-    return rt_lst

@@ -17,9 +17,7 @@ def main():
     lm.eval_lm(model, loss_fn, epocs)
     t2 = time.time()
     print("Q1 time:%.3f" %(t2-t1))
-    error_pairs = lm.list_errors(35)
-    print("Top 35 errors")
-    print(error_pairs)
+    lm.list_errors(35)
     
 if __name__ == '__main__':
     main()
