@@ -126,11 +126,10 @@ def normalize_weights(weights):
     w_sum = np.sum(weights)
     N = len(weights)
     probs = [None] * N
-    prob_sum = 0.0
-    for i in range(N - 1):
-        probs[i] = weights[i] / w_sum
-        prob_sum += probs[i] 
-    probs[N - 1] = 1.0 - prob_sum
+    for i in range(N):
+        probs[i] = weights[i] / w_sum 
+    max_idx = probs.index(max(probs))
+    probs[max_idx] += sum(probs) - 1.0
     return probs
 
 
