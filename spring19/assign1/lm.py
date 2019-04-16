@@ -179,7 +179,8 @@ def load_prevsent_dataset(path, ret_data):
 
 def evaluate_dataset(model, data, is_test = False):
     global freq_errors
-    freq_errors = {}
+    if show_errors and is_test:
+        freq_errors = {}
     num_items = 0
     num_correct = 0
     for X, Y, start_pos in data:
