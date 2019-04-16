@@ -256,6 +256,7 @@ def list_errors(N):
     error_count = len(errors)
     i = 0
     j = error_count - 1
+    err_str = ""
     print("Top 35 errors")
     while (i < N):
         if (j >= 0):
@@ -264,7 +265,12 @@ def list_errors(N):
             freq = errors[j][1]
             word_g = all_words[y_g]
             word_p = all_words[y_p]
-            print("%s   %s   %d" %(word_g, word_p, freq))
+            str1 = "(%s %s %d)" %(word_g, word_p, freq)
+            err_str = err_str.join(" ")
+            err_str = err_str.join(str1)
+            if (i % 7) == 0:
+                print(str)
+                err_str = ""
             j -= 1
         else:
             break
