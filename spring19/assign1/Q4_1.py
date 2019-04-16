@@ -17,6 +17,7 @@ def main():
     lm.eval_lm(model, loss_fn, epocs)
     t2 = time.time()
     print("Q4_1 time=%.3f" %(t2-t1))
+    lm.list_errors(35)
     
 if __name__ == '__main__':
     main()
