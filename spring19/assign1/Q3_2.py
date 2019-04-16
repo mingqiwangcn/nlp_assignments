@@ -18,5 +18,6 @@ def main():
     lm.eval_lm(model, loss_fn, epocs)
     t2 = time.time()
     print("Q3_2 r=%d time=%.3f" %(r, t2-t1))
+    
 if __name__ == '__main__':
     main()
