@@ -28,7 +28,7 @@
    		exaples: python Q1.py 10
    python Q3_2.py 	[#epoch] [#negtive samples]
 		exaples: python Q3_2.py 20 20
-   python Q3_3.py 	[#epoch] [#negtive samples]	[f]
+   python Q3_3.py 	[#epoch] [#negtive samples] [f]
 		exaples: python Q3_2.py 20 20 0.1
 
 
