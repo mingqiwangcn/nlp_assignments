@@ -5,9 +5,9 @@ import torch.optim as optim
 import numpy as np
 
 
-IN_EMBEDDING_DIM = 128
-OUT_EMBEDDING_DIM = 128
-HIDDEN_DIM = 128
+IN_EMBEDDING_DIM = 200
+OUT_EMBEDDING_DIM = 200
+HIDDEN_DIM = 200
 
 all_words = []
 word_to_idx = {}
@@ -46,7 +46,7 @@ class LSTMBinaryLogLoss(nn.Module):
         self.hidden_dim = hidden_dim
         self.in_word_embeddings = nn.Embedding(corpus_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-        self.out_word_embeddings = self.in_word_embeddings #nn.Embedding(corpus_size, hidden_dim)
+        self.out_word_embeddings = nn.Embedding(corpus_size, hidden_dim)
         
     def forward(self, word_idxs, start_pos = 0):
         N = len(word_idxs)
