@@ -5,7 +5,7 @@ import sys
 
 def main():
     epocs = 1
-    if len(sys.argv) > 3:
+    if len(sys.argv) > 1:
         epocs = int(sys.argv[1])
     t1 = time.time()
     lm.load_prevsent_data()
