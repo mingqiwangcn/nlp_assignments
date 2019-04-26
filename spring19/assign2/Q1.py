@@ -5,6 +5,7 @@ import torch.optim as optim
 import numpy as np
 import time
 import sys
+from _tracemalloc import is_tracing
 
 
 IN_EMBEDDING_DIM = 200
@@ -49,18 +50,6 @@ class BinaryClassifier(nn.Module):
         ret = nn.Module.eval(self)
         self.label_embs = self.out_word_embeddings(self.word_idxes).t()
         return ret    
-         
-        
-
-def load_corpus():
-    path = "./31210-s19-hw1/bobsue.voc.txt"
-    file = open(path, "r")
-    idx = 0
-    for word in file:
-        word = word[:len(word)-1]
-        word_to_idx[word] = idx
-        all_words.append(word)
-        idx += 1
 
 def load_dataset(path, ret_data, is_train = False):
     file = open(path, "r")
@@ -72,14 +61,15 @@ def load_dataset(path, ret_data, is_train = False):
         y = int(tokens[num_words])
         for i in range(num_words):
             word = tokens[i]
-            X.append(word)
-            if not word in word_to_idx:
-                word_to_idx[word] = idx
-                all_words.append(word)
+            x.append(word)
+            if is_train:
+                if not word in word_to_idx:
+                    word_to_idx[word] = idx
+                    all_words.append(word)
         item = (x, y)
         ret_data.append(item)
-        idx += 1
-
+        idx += 1    
+    
 def evaluate_dataset(model, data, is_test = False):
     global freq_errors
     if show_errors and is_test:
