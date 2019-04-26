@@ -68,7 +68,7 @@ def load_dataset(path, ret_data, is_train = False):
     for line in file:
         tokens = line.split()
         num_words = len(tokens) - 1
-        X = []
+        x = []
         y = int(tokens[num_words])
         for i in range(num_words):
             word = tokens[i]
@@ -76,7 +76,7 @@ def load_dataset(path, ret_data, is_train = False):
             if not word in word_to_idx:
                 word_to_idx[word] = idx
                 all_words.append(word)
-        item = (X, y)
+        item = (x, y)
         ret_data.append(item)
         idx += 1
 
