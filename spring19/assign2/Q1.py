@@ -7,7 +7,7 @@ import time
 import sys
 
 EMBEDDING_DIM = 100
-BATCH_SIZE = 4
+BATCH_SIZE = 1
 
 UNKNOWN_WORD = "_unk_"
 all_words = []
