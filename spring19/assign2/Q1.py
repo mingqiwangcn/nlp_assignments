@@ -7,7 +7,7 @@ import time
 import sys
 
 EMBEDDING_DIM = 100
-BATCH_SIZE = 500
+BATCH_SIZE = 4
 
 UNKNOWN_WORD = "_unk_"
 all_words = []
@@ -148,8 +148,8 @@ def eval_model(model, loss_fn, epocs):
             loss.backward()
             optimizer.step()
             itr += 1
-            if (True):
-                print("epoc=%d itr=%d loss=%f" %(epoc, itr, loss.item()))
+            if (itr % 100 == 0):
+                print("batch size=%d epoc=%d itr=%d loss=%f" %(BATCH_SIZE, epoc, itr, loss.item()))
                 evaluate(epoc, model)
     
     print("best_test_accu=%.2f" %(best_test_accu))
