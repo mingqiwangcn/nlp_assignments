@@ -74,49 +74,38 @@ def load_dataset(path, ret_data, is_train = False):
                 else:
                     w_id = word_to_idx[word]
             x.append(w_id)
-        ts_x = torch.tensor(x, dtype = torch.float)
+        ts_x = torch.tensor(x, dtype = torch.long)
         item = (ts_x, y)
         ret_data.append(item)
         
-    
     if is_train:
         all_words.append(UNKNOWN_WORD)
         word_to_idx[UNKNOWN_WORD] = len(all_words) - 1
     
-def evaluate_dataset(model, data, is_test = False):
-    global freq_errors
-    if show_errors and is_test:
-        freq_errors = {}
+def evaluate_dataset(model, data):
     num_items = 0
     num_correct = 0
-    for X, Y, start_pos in data:
-        ts_X = torch.tensor(X, dtype = torch.long)
-        ts_Y = torch.tensor(Y, dtype = torch.long)
-        ts_Y = ts_Y[start_pos:]
-        Y_pred = model(ts_X, start_pos).argmax(1)
-        num_items += ts_Y.shape[0]
-        check_rt = (ts_Y == Y_pred)
-        num_correct += check_rt.sum().item()
-        if show_errors and is_test:
-            for i in range(len(check_rt)):
-                if check_rt[i] == 0:
-                    e_pair = (ts_Y[i].item(), Y_pred[i].item())
-                    e_count = 0
-                    if e_pair in freq_errors:
-                        e_count = freq_errors[e_pair]
-                    e_count += 1
-                    freq_errors[e_pair] = e_count
+    sig = nn.Sigmoid()
+    for x, y in data:
+        num_items += 1
+        prod = model(x)
+        y_pred = 0
+        if sig(prod) >= 0.5:
+            y_pred = 1
+        if y_pred == y:
+            num_correct += 1
+        
     return num_correct / num_items 
 
 def evaluate(epoc, model):
     global best_eval_accu
     global best_test_accu
     model.eval()
-    eval_ratio = evaluate_dataset(model, eval_data, is_test = False)
+    eval_ratio = evaluate_dataset(model, eval_data)
     if (eval_ratio > best_eval_accu):
         best_eval_accu = eval_ratio
         print("epoc=%d eval accuracy=%.2f" %(epoc, eval_ratio))
-        test_ratio = evaluate_dataset(model, test_data, is_test = True)
+        test_ratio = evaluate_dataset(model, test_data)
         if (test_ratio > best_test_accu):
             best_test_accu = test_ratio
             print("epoc=%d test accuracy=%.2f" %(epoc, test_ratio))
@@ -131,7 +120,7 @@ def eval_model(model, loss_fn, epocs):
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
     N = len(training_data)
-    M = N / 2
+    M = int(N / 2)
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
@@ -143,6 +132,8 @@ def eval_model(model, loss_fn, epocs):
             loss.backward()
             optimizer.step()
             itr += 1
+            if (itr % 100 == 0):
+                print("itr=", itr)
             if (itr == M or itr == N):
                 print("epoc=%d itr=%d loss=%f" %(epoc, itr, loss.item()))
                 evaluate(epoc, model)
