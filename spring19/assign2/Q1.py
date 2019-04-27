@@ -5,13 +5,10 @@ import torch.optim as optim
 import numpy as np
 import time
 import sys
-from _tracemalloc import is_tracing
 
+EMBEDDING_DIM = 100
 
-IN_EMBEDDING_DIM = 200
-OUT_EMBEDDING_DIM = 200
-HIDDEN_DIM = 200
-
+UNKNOWN_WORD = "_unk_"
 all_words = []
 word_to_idx = {}
 word_freqs = {}
@@ -25,35 +22,38 @@ best_test_accu = 0
 
 
 class BinaryClassifier(nn.Module):
-    def __init__(self, embedding_dim, hidden_dim, word_idxes):
+    def __init__(self, embedding_dim, corpus_size):
         super(BinaryClassifier, self).__init__()
-        corpus_size = len(word_idxes)
-        self.word_idxes = torch.tensor(word_idxes, dtype = torch.long)
-        self.hidden_dim = hidden_dim
-        self.in_word_embeddings = nn.Embedding(corpus_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
-        self.out_word_embeddings = nn.Embedding(corpus_size, hidden_dim)
+        np.random.seed(100)
+        all_embeds = np.random.uniform(-1.0, 1.0, (corpus_size, embedding_dim))
+        ts_all_embeds = torch.tensor(all_embeds)
+        nn.Embedding.from_pretrained(ts_all_embeds, freeze = False)
+        self.word_embeddings = nn.Embedding(corpus_size, embedding_dim)
+        self.weights = torch.ones(embedding_dim);
         
-    def forward(self, word_idxs, start_pos = 0):
+    def forward(self, word_idxs):
         N = len(word_idxs)
-        in_embeds = self.in_word_embeddings(word_idxs)
-        lstm_out, _ = self.lstm(in_embeds.view(N, 1, -1))
-        hidden_state = lstm_out.view(N, -1)
-        
-        if (not self.training):
-            scores = hidden_state.mm(self.label_embs)
-            return scores 
-                
-        return hidden_state
+        embeds = self.word_embeddings(word_idxs)
+        hidden = embeds.mean(dim = 0)
+        prod = self.weights.dot(hidden)
+        return prod
+
+class BinaryLogLoss(nn.Module):
+    def __init__(self):
+        super(BinaryLogLoss, self).__init__()
+        self.log_sig = nn.LogSigmoid()
     
-    def eval(self):
-        ret = nn.Module.eval(self)
-        self.label_embs = self.out_word_embeddings(self.word_idxes).t()
-        return ret    
+    def forward(self, out_prod, y):
+        loss = - (y == 1) * self.log_sig(out_prod) - (y == 0) * self.log_sig(-out_prod)
+        return loss
+        
 
 def load_dataset(path, ret_data, is_train = False):
     file = open(path, "r")
     idx = 0
+    unk_id = None
+    if not is_train:
+        unk_id = word_to_idx[UNKNOWN_WORD]
     for line in file:
         tokens = line.split()
         num_words = len(tokens) - 1
@@ -61,14 +61,26 @@ def load_dataset(path, ret_data, is_train = False):
         y = int(tokens[num_words])
         for i in range(num_words):
             word = tokens[i]
-            x.append(word)
+            w_id = None
             if is_train:
                 if not word in word_to_idx:
                     word_to_idx[word] = idx
                     all_words.append(word)
-        item = (x, y)
+                w_id = word_to_idx[word]
+            else:
+                if not word in word_to_idx:
+                    w_id = unk_id
+                else:
+                    w_id = word_to_idx[word]
+            x.append(w_id)
+        ts_x = torch.tensor(x, dtype = torch.float)
+        item = (ts_x, y)
         ret_data.append(item)
         idx += 1    
+    
+    if is_train:
+        all_words.append(UNKNOWN_WORD)
+        word_to_idx[UNKNOWN_WORD] = len(all_words) - 1
     
 def evaluate_dataset(model, data, is_test = False):
     global freq_errors
@@ -114,8 +126,7 @@ def load_data():
     load_dataset("./31210-s19-hw2/senti.dev.tsv", eval_data)
     load_dataset("./31210-s19-hw2/senti.test.tsv", test_data)
 
-def eval(model, loss_fn, epocs):
-    #torch.manual_seed(1)
+def eval_model(model, loss_fn, epocs):
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
     N = len(training_data)
@@ -124,13 +135,10 @@ def eval(model, loss_fn, epocs):
         if epoc > 0:
             random.shuffle(training_data)
         itr = 0
-        for X, Y, start_pos in training_data:
+        for x, y in training_data:
             model.zero_grad()
-            ts_X = torch.tensor(X, dtype = torch.long)
-            ts_Y = torch.tensor(Y, dtype = torch.long)
-            ts_Y = ts_Y[start_pos:]
-            label_scores = model(ts_X, start_pos)
-            loss = loss_fn(label_scores, ts_Y)
+            prod = model(x)
+            loss = loss_fn(prod, y)
             loss.backward()
             optimizer.step()
             itr += 1
@@ -146,14 +154,12 @@ def main():
         epocs = int(sys.argv[1])
     t1 = time.time()
     load_data()
-    '''
-    corpus_size = len(lm.word_to_idx)
-    labels_size = corpus_size
-    model =  lm.LSTMLogLoss(lm.IN_EMBEDDING_DIM, lm.HIDDEN_DIM, corpus_size, labels_size)
-    loss_fn = nn.CrossEntropyLoss()
-    lm.eval_lm(model, loss_fn, epocs)
+    corpus_size = len(all_words)
+    model = BinaryClassifier(EMBEDDING_DIM, corpus_size)
+    loss_fn = BinaryLogLoss()
+    eval_model(model, loss_fn, epocs)
     t2 = time.time()
     print("Q1 time=%.3f" %(t2-t1))
-    '''
+    
 if __name__ == '__main__':
     main()
