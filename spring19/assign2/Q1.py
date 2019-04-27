@@ -152,9 +152,11 @@ def eval_model(model, loss_fn, epocs):
     print("best_test_accu=%.2f" %(best_test_accu))
 
 def main():
+    global BATCH_SIZE
     epocs = 1
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:
         epocs = int(sys.argv[1])
+        BATCH_SIZE = int(sys.argv[2])
     t1 = time.time()
     load_data()
     corpus_size = len(all_words)
