@@ -7,6 +7,7 @@ import time
 import sys
 
 EMBEDDING_DIM = 100
+BATCH_SIZE = 10
 
 UNKNOWN_WORD = "_unk_"
 all_words = []
@@ -29,13 +30,16 @@ class BinaryClassifier(nn.Module):
         ts_all_embeds = torch.tensor(all_embeds)
         nn.Embedding.from_pretrained(ts_all_embeds, freeze = False)
         self.word_embeddings = nn.Embedding(corpus_size, embedding_dim)
-        self.weights = torch.ones(embedding_dim);
+        self.weights = torch.ones(embedding_dim).reshape(embedding_dim, 1);
         
-    def forward(self, word_idxs):
-        N = len(word_idxs)
-        embeds = self.word_embeddings(word_idxs)
-        hidden = embeds.mean(dim = 0)
-        prod = self.weights.dot(hidden)
+    def forward(self, batch_word_idxs):
+        hidden_lst = []
+        for word_idxs in batch_word_idxs:
+            embeds = self.word_embeddings(word_idxs)
+            hidden = embeds.mean(dim = 0)
+            hidden_lst.append(hidden)
+        hiddens = torch.cat(hidden_lst).reshape(-1, EMBEDDING_DIM)
+        prod = hiddens.mm(self.weights)
         return prod
 
 class BinaryLogLoss(nn.Module):
@@ -43,12 +47,15 @@ class BinaryLogLoss(nn.Module):
         super(BinaryLogLoss, self).__init__()
         self.log_sig = nn.LogSigmoid()
     
-    def forward(self, out_prod, y):
-        loss = - (y == 1) * self.log_sig(out_prod) - (y == 0) * self.log_sig(-out_prod)
-        return loss
+    def forward(self, out_prod, y_s):
+        float_y_s = y_s.float()
+        loss = - float_y_s * self.log_sig(out_prod) - (1.0 - float_y_s) * self.log_sig(-out_prod)
+        return loss.mean()
         
 
 def load_dataset(path, ret_data, is_train = False):
+    x_s = []
+    y_s = []
     file = open(path, "r")
     idx = 0
     unk_id = None
@@ -75,26 +82,25 @@ def load_dataset(path, ret_data, is_train = False):
                     w_id = word_to_idx[word]
             x.append(w_id)
         ts_x = torch.tensor(x, dtype = torch.long)
-        item = (ts_x, y)
-        ret_data.append(item)
-        
+        x_s.append(ts_x)
+        y_s.append(y)
+    ret_data.append(x_s)
+    ts_ys = torch.tensor(y_s, dtype = torch.uint8)
+    ret_data.append(ts_ys)
     if is_train:
         all_words.append(UNKNOWN_WORD)
         word_to_idx[UNKNOWN_WORD] = len(all_words) - 1
     
 def evaluate_dataset(model, data):
-    num_items = 0
-    num_correct = 0
     sig = nn.Sigmoid()
-    for x, y in data:
-        num_items += 1
-        prod = model(x)
-        y_pred = 0
-        if sig(prod) >= 0.5:
-            y_pred = 1
-        if y_pred == y:
-            num_correct += 1
-        
+    x_s = data[0]
+    y_s = data[1]
+    num_items = len(x_s)
+    prod = model(x_s)
+    scores = sig(prod).reshape(num_items)
+    y_pred = (scores >= 0.5)
+    rt = (y_s == y_pred)
+    num_correct = rt.sum().item() 
     return num_correct / num_items 
 
 def evaluate(epoc, model):
@@ -119,22 +125,27 @@ def load_data():
 def eval_model(model, loss_fn, epocs):
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
-    N = len(training_data)
-    M = int(N / 2)
+    N = len(training_data[0])
+    num_batches = int(N / BATCH_SIZE)
+    if (N % BATCH_SIZE):
+        num_batches += 1
+    M = int(num_batches / 3)
+    test_itrs = [M, M + M, num_batches]
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
         itr = 0
-        for x, y in training_data:
+        for i in range(num_batches):
             model.zero_grad()
-            prod = model(x)
-            loss = loss_fn(prod, y)
+            x_s = training_data[0][i: i + BATCH_SIZE]
+            y_s = training_data[1][i: i + BATCH_SIZE]
+            prod = model(x_s)
+            loss = loss_fn(prod, y_s)
             loss.backward()
             optimizer.step()
             itr += 1
-            if (itr % 100 == 0):
-                print("itr=", itr)
-            if (itr == M or itr == N):
+            print("batch=", itr)
+            if (itr in test_itrs):
                 print("epoc=%d itr=%d loss=%f" %(epoc, itr, loss.item()))
                 evaluate(epoc, model)
     
