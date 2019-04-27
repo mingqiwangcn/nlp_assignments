@@ -7,7 +7,7 @@ import time
 import sys
 
 EMBEDDING_DIM = 100
-BATCH_SIZE = 10
+BATCH_SIZE = 500
 
 UNKNOWN_WORD = "_unk_"
 all_words = []
@@ -27,10 +27,10 @@ class BinaryClassifier(nn.Module):
         super(BinaryClassifier, self).__init__()
         np.random.seed(100)
         all_embeds = np.random.uniform(-1.0, 1.0, (corpus_size, embedding_dim))
-        ts_all_embeds = torch.tensor(all_embeds)
-        nn.Embedding.from_pretrained(ts_all_embeds, freeze = False)
-        self.word_embeddings = nn.Embedding(corpus_size, embedding_dim)
-        self.weights = torch.ones(embedding_dim).reshape(embedding_dim, 1);
+        ts_all_embeds = torch.tensor(all_embeds, dtype = torch.double)
+        self.word_embeddings = nn.Embedding.from_pretrained(ts_all_embeds, freeze = False)
+        #self.word_embeddings = nn.Embedding(corpus_size, embedding_dim)
+        self.weights = torch.ones(embedding_dim).double().reshape(embedding_dim, 1);
         
     def forward(self, batch_word_idxs):
         hidden_lst = []
@@ -48,7 +48,7 @@ class BinaryLogLoss(nn.Module):
         self.log_sig = nn.LogSigmoid()
     
     def forward(self, out_prod, y_s):
-        float_y_s = y_s.float()
+        float_y_s = y_s.double()
         loss = - float_y_s * self.log_sig(out_prod) - (1.0 - float_y_s) * self.log_sig(-out_prod)
         return loss.mean()
         
@@ -135,17 +135,20 @@ def eval_model(model, loss_fn, epocs):
         if epoc > 0:
             random.shuffle(training_data)
         itr = 0
+        pos1 = 0
+        pos2 = 0
         for i in range(num_batches):
             model.zero_grad()
-            x_s = training_data[0][i: i + BATCH_SIZE]
-            y_s = training_data[1][i: i + BATCH_SIZE]
+            pos2 = pos1 + BATCH_SIZE
+            x_s = training_data[0][pos1: pos2]
+            y_s = training_data[1][pos1: pos2]
+            pos1 = pos2
             prod = model(x_s)
             loss = loss_fn(prod, y_s)
             loss.backward()
             optimizer.step()
             itr += 1
-            print("batch=", itr)
-            if (itr in test_itrs):
+            if (True):
                 print("epoc=%d itr=%d loss=%f" %(epoc, itr, loss.item()))
                 evaluate(epoc, model)
     
@@ -153,7 +156,7 @@ def eval_model(model, loss_fn, epocs):
 
 def main():
     global BATCH_SIZE
-    epocs = 1
+    epocs = 5
     if len(sys.argv) > 2:
         epocs = int(sys.argv[1])
         BATCH_SIZE = int(sys.argv[2])
