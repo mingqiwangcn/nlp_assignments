@@ -148,7 +148,7 @@ def eval_model(model, loss_fn, epocs):
             loss.backward()
             optimizer.step()
             itr += 1
-            if (itr % 100 == 0):
+            if (itr % 1000 == 0):
                 print("batch size=%d epoc=%d itr=%d loss=%f" %(BATCH_SIZE, epoc, itr, loss.item()))
                 evaluate(epoc, model)
     
