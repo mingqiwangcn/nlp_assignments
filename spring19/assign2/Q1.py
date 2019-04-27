@@ -66,6 +66,7 @@ def load_dataset(path, ret_data, is_train = False):
                 if not word in word_to_idx:
                     word_to_idx[word] = idx
                     all_words.append(word)
+                    idx += 1
                 w_id = word_to_idx[word]
             else:
                 if not word in word_to_idx:
@@ -76,7 +77,7 @@ def load_dataset(path, ret_data, is_train = False):
         ts_x = torch.tensor(x, dtype = torch.float)
         item = (ts_x, y)
         ret_data.append(item)
-        idx += 1    
+        
     
     if is_train:
         all_words.append(UNKNOWN_WORD)
