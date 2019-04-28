@@ -89,13 +89,14 @@ def load_dataset(path, ret_data, is_train = False):
     
 def evaluate_dataset(model, data):
     sig = nn.Sigmoid()
-    x_s = data[0]
-    y_s = data[1]
+    x_s, y_s = get_data_x_y(data)
+    
     num_items = len(x_s)
     prod = model(x_s)
     scores = sig(prod).reshape(num_items)
     y_pred = (scores >= 0.5)
-    rt = (y_s == y_pred)
+    ts_y_s = torch.tensor(y_s, dtype = torch.uint8) 
+    rt = (ts_y_s == y_pred)
     num_correct = rt.sum().item() 
     return num_correct / num_items 
 
@@ -119,6 +120,12 @@ def load_data():
     load_dataset("./31210-s19-hw2/senti.dev.tsv", eval_data)
     load_dataset("./31210-s19-hw2/senti.test.tsv", test_data)
 
+def get_data_x_y(data):
+    d = list(zip(*data))
+    data_x_s = list(d[0])
+    data_y_s = list(d[1])
+    return data_x_s, data_y_s
+
 def eval_model(model, loss_fn, epocs):
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
@@ -130,10 +137,7 @@ def eval_model(model, loss_fn, epocs):
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
-            
-        data = list(zip(*training_data))
-        data_x_s = list(data[0])
-        data_y_s = list(data[1]) 
+        data_x_s, data_y_s = get_data_x_y(training_data)
         pos1 = 0
         pos2 = 0
         for batch in range(num_batches):
