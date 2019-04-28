@@ -7,8 +7,9 @@ import time
 import sys
 from numpy import dtype
 
+EARLY_STOP_ITR = 2
 EMBEDDING_DIM = 100
-BATCH_SIZE = 1
+BATCH_SIZE = 50
 UNKNOWN_WORD = "_unk_"
 all_words = []
 word_to_idx = {}
@@ -152,7 +153,7 @@ def eval_model(model, loss_fn, epocs):
             loss.backward()
             optimizer.step()
             itr = batch + 1
-            if itr % 100 == 0:
+            if itr % EARLY_STOP_ITR == 0:
                 print("batch size=%d epoc=%d itr=%d loss=%f" %(BATCH_SIZE, epoc, itr, loss.item()))
                 evaluate(epoc, model)
     
@@ -170,9 +171,10 @@ def print_norms(model):
 def main():
     global BATCH_SIZE
     epocs = 1
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 3:
         epocs = int(sys.argv[1])
         BATCH_SIZE = int(sys.argv[2])
+        EARLY_STOP_ITR = int(sys.argv[3])
     t1 = time.time()
     load_data()
     corpus_size = len(all_words)
