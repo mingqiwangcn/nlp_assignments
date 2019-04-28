@@ -130,7 +130,6 @@ def eval_model(model, loss_fn, epocs):
     if (N % BATCH_SIZE):
         num_batches += 1
     M = int(num_batches / 3)
-    test_itrs = [M, M+M, num_batches]
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
@@ -147,7 +146,7 @@ def eval_model(model, loss_fn, epocs):
             loss.backward()
             optimizer.step()
             itr = batch + 1
-            if itr in test_itrs:
+            if itr % 100 == 0:
                 print("batch size=%d epoc=%d itr=%d loss=%f" %(BATCH_SIZE, epoc, itr, loss.item()))
                 evaluate(epoc, model)
     
