@@ -5,6 +5,7 @@ import torch.optim as optim
 import numpy as np
 import time
 import sys
+from numpy import dtype
 
 EMBEDDING_DIM = 100
 BATCH_SIZE = 1
@@ -79,8 +80,7 @@ def load_dataset(path, ret_data, is_train = False):
                     w_id = word_to_idx[word]
             x.append(w_id)
         ts_x = torch.tensor(x, dtype = torch.long)
-        ts_y = torch.tensor(y, dtype = torch.uint8)
-        pair = (ts_x, ts_y)
+        pair = (ts_x, y)
         ret_data.append(pair)
         
     if is_train:
@@ -141,9 +141,10 @@ def eval_model(model, loss_fn, epocs):
             pos2 = pos1 + BATCH_SIZE
             x_s = data_x_s[pos1: pos2]
             y_s = data_y_s[pos1: pos2]
+            ts_ys = torch.tensor(y_s, dtype = torch.uint8)
             pos1 = pos2
             prod = model(x_s)
-            loss = loss_fn(prod, y_s)
+            loss = loss_fn(prod, ts_ys)
             loss.backward()
             optimizer.step()
             itr = batch + 1
