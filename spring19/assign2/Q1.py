@@ -170,6 +170,7 @@ def print_norms(model):
 
 def main():
     global BATCH_SIZE
+    global EARLY_STOP_ITR
     epocs = 1
     if len(sys.argv) > 3:
         epocs = int(sys.argv[1])
