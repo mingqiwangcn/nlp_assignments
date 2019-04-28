@@ -7,9 +7,9 @@ import time
 import sys
 from numpy import dtype
 
-EARLY_STOP_ITR = 2
+EARLY_STOP_ITR = 100
 EMBEDDING_DIM = 100
-BATCH_SIZE = 50
+BATCH_SIZE = 1
 UNKNOWN_WORD = "_unk_"
 all_words = []
 word_to_idx = {}
@@ -26,7 +26,9 @@ class BinaryClassifier(nn.Module):
         all_embeds = np.random.uniform(-1.0, 1.0, (corpus_size, embedding_dim))
         ts_all_embeds = torch.tensor(all_embeds, dtype = torch.double)
         self.word_embeddings = nn.Embedding.from_pretrained(ts_all_embeds, freeze = False)
-        self.weights = torch.ones(embedding_dim).double().reshape(embedding_dim, 1);
+        
+        ts_weights = torch.ones(EMBEDDING_DIM, 1, dtype = torch.double)
+        self.weights = nn.Parameter(ts_weights);
         
     def forward(self, batch_word_idxs):
         hidden_lst = []
