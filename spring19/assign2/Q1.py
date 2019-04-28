@@ -8,19 +8,14 @@ import sys
 
 EMBEDDING_DIM = 100
 BATCH_SIZE = 1
-
 UNKNOWN_WORD = "_unk_"
 all_words = []
 word_to_idx = {}
-word_freqs = {}
 training_data = []
 eval_data = []
 test_data = []
-show_errors = False
-freq_errors = None
 best_eval_accu = 0
 best_test_accu = 0
-
 
 class BinaryClassifier(nn.Module):
     def __init__(self, embedding_dim, corpus_size):
@@ -29,7 +24,6 @@ class BinaryClassifier(nn.Module):
         all_embeds = np.random.uniform(-1.0, 1.0, (corpus_size, embedding_dim))
         ts_all_embeds = torch.tensor(all_embeds, dtype = torch.double)
         self.word_embeddings = nn.Embedding.from_pretrained(ts_all_embeds, freeze = False)
-        #self.word_embeddings = nn.Embedding(corpus_size, embedding_dim)
         self.weights = torch.ones(embedding_dim).double().reshape(embedding_dim, 1);
         
     def forward(self, batch_word_idxs):
@@ -41,18 +35,23 @@ class BinaryClassifier(nn.Module):
         hiddens = torch.cat(hidden_lst).reshape(-1, EMBEDDING_DIM)
         prod = hiddens.mm(self.weights)
         return prod
-
+    
+    def compute_norms(self):
+        self.emb_norms = torch.norm(self.word_embeddings.weight.data, dim = 1)
+        
+    def get_norms(self):
+        return self.emb_norms
+        
 class BinaryLogLoss(nn.Module):
     def __init__(self):
         super(BinaryLogLoss, self).__init__()
         self.log_sig = nn.LogSigmoid()
     
     def forward(self, out_prod, y_s):
-        float_y_s = y_s.double()
-        loss = - float_y_s * self.log_sig(out_prod) - (1.0 - float_y_s) * self.log_sig(-out_prod)
+        d_y_s = y_s.double()
+        loss = - d_y_s * self.log_sig(out_prod) - (1.0 - d_y_s) * self.log_sig(-out_prod)
         return loss.mean()
         
-
 def load_dataset(path, ret_data, is_train = False):
     x_s = []
     y_s = []
@@ -110,6 +109,7 @@ def evaluate(epoc, model):
     eval_ratio = evaluate_dataset(model, eval_data)
     if (eval_ratio > best_eval_accu):
         best_eval_accu = eval_ratio
+        model.compute_norms()
         print("epoc=%d eval accuracy=%.2f" %(epoc, eval_ratio))
         test_ratio = evaluate_dataset(model, test_data)
         if (test_ratio > best_test_accu):
@@ -130,14 +130,13 @@ def eval_model(model, loss_fn, epocs):
     if (N % BATCH_SIZE):
         num_batches += 1
     M = int(num_batches / 3)
-    test_itrs = [M, M + M, num_batches]
+    test_itrs = [M, M+M, num_batches]
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
-        itr = 0
         pos1 = 0
         pos2 = 0
-        for i in range(num_batches):
+        for batch in range(num_batches):
             model.zero_grad()
             pos2 = pos1 + BATCH_SIZE
             x_s = training_data[0][pos1: pos2]
@@ -147,16 +146,25 @@ def eval_model(model, loss_fn, epocs):
             loss = loss_fn(prod, y_s)
             loss.backward()
             optimizer.step()
-            itr += 1
-            if (itr % 1000 == 0):
+            itr = batch + 1
+            if itr in test_itrs:
                 print("batch size=%d epoc=%d itr=%d loss=%f" %(BATCH_SIZE, epoc, itr, loss.item()))
                 evaluate(epoc, model)
     
     print("best_test_accu=%.2f" %(best_test_accu))
 
+def print_norms(model):
+    norms = model.get_norms()
+    idxes = norms.argsort()
+    large_15 = idxes[0:15]
+    small_15 = idxes[-15:]
+    w_lst = np.array(all_words)
+    print("15 words with largest norm", list(w_lst[large_15]))
+    print("15 words with smallest norm", list(w_lst[small_15]))
+
 def main():
     global BATCH_SIZE
-    epocs = 5
+    epocs = 1
     if len(sys.argv) > 2:
         epocs = int(sys.argv[1])
         BATCH_SIZE = int(sys.argv[2])
@@ -166,6 +174,7 @@ def main():
     model = BinaryClassifier(EMBEDDING_DIM, corpus_size)
     loss_fn = BinaryLogLoss()
     eval_model(model, loss_fn, epocs)
+    print_norms(model)
     t2 = time.time()
     print("Q1 time=%.3f" %(t2-t1))
     
