@@ -53,8 +53,6 @@ class BinaryLogLoss(nn.Module):
         return loss.mean()
         
 def load_dataset(path, ret_data, is_train = False):
-    x_s = []
-    y_s = []
     file = open(path, "r")
     idx = 0
     unk_id = None
@@ -81,11 +79,10 @@ def load_dataset(path, ret_data, is_train = False):
                     w_id = word_to_idx[word]
             x.append(w_id)
         ts_x = torch.tensor(x, dtype = torch.long)
-        x_s.append(ts_x)
-        y_s.append(y)
-    ret_data.append(x_s)
-    ts_ys = torch.tensor(y_s, dtype = torch.uint8)
-    ret_data.append(ts_ys)
+        ts_y = torch.tensor(y, dtype = torch.uint8)
+        pair = (ts_x, ts_y)
+        ret_data.append(pair)
+        
     if is_train:
         all_words.append(UNKNOWN_WORD)
         word_to_idx[UNKNOWN_WORD] = len(all_words) - 1
@@ -125,21 +122,25 @@ def load_data():
 def eval_model(model, loss_fn, epocs):
     learing_rate = 1e-3
     optimizer = optim.Adam(model.parameters(), lr = learing_rate)
-    N = len(training_data[0])
+    N = len(training_data)
     num_batches = int(N / BATCH_SIZE)
     if (N % BATCH_SIZE):
         num_batches += 1
-    M = int(num_batches / 3)
+        
     for epoc in range(epocs):
         if epoc > 0:
             random.shuffle(training_data)
+            
+        data = list(zip(*training_data))
+        data_x_s = list(data[0])
+        data_y_s = list(data[1]) 
         pos1 = 0
         pos2 = 0
         for batch in range(num_batches):
             model.zero_grad()
             pos2 = pos1 + BATCH_SIZE
-            x_s = training_data[0][pos1: pos2]
-            y_s = training_data[1][pos1: pos2]
+            x_s = data_x_s[pos1: pos2]
+            y_s = data_y_s[pos1: pos2]
             pos1 = pos2
             prod = model(x_s)
             loss = loss_fn(prod, y_s)
