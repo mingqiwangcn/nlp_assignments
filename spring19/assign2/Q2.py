@@ -52,8 +52,6 @@ class BinaryClassifier(nn.Module):
         prod = hiddens.mm(self.weights)
         return prod
     
-    
-    
     def save_dist_info(self):
         self.best_embeds = self.word_embeddings.weight.data
         self.best_u = self.attend_u
