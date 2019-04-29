@@ -5,7 +5,6 @@ import torch.optim as optim
 import numpy as np
 import time
 import sys
-from numpy import dtype
 
 EARLY_STOP_ITR = 100
 EMBEDDING_DIM = 100
@@ -18,7 +17,7 @@ eval_data = []
 test_data = []
 best_eval_accu = 0
 best_test_accu = 0
-
+        
 class BinaryClassifier(nn.Module):
     def __init__(self, embedding_dim, corpus_size):
         super(BinaryClassifier, self).__init__()
@@ -26,9 +25,14 @@ class BinaryClassifier(nn.Module):
         all_embeds = np.random.uniform(-1.0, 1.0, (corpus_size, embedding_dim))
         ts_all_embeds = torch.tensor(all_embeds, dtype = torch.double)
         self.word_embeddings = nn.Embedding.from_pretrained(ts_all_embeds, freeze = False)
-        self.weights = torch.ones(embedding_dim).double().reshape(embedding_dim, 1);
-        self.attend_u =  torch.ones(embedding_dim).double();
-        self.cosine = nn.CosineSimilarity(dim = 0) 
+        
+        ts_weights = torch.ones(EMBEDDING_DIM, 1, dtype = torch.double)
+        self.weights = nn.Parameter(ts_weights);
+        
+        ts_attend_u = torch.ones(EMBEDDING_DIM, dtype = torch.double)
+        self.attend_u = nn.Parameter(ts_attend_u);
+        
+        self.cosine = nn.CosineSimilarity(dim = 0)
         
     def forward(self, batch_word_idxs):
         hidden_lst = []
@@ -37,25 +41,33 @@ class BinaryClassifier(nn.Module):
             sent_len = embeds.shape[0]
             dist_lst = []
             for i in range(sent_len):
-                dist = self.cosine(self.attend_u, embeds[i])
+                dist = self.cosine(self.attend_u, embeds[i]).reshape(1,1)
                 dist_lst.append(dist)
-                
-            dists = torch.tensor(dist_lst)
+            dists = torch.cat(dist_lst, dim = 0)
             alphas = torch.exp(dists)
             norm_alphas = nn.functional.normalize(alphas, p = 1, dim = 0).reshape(sent_len, 1)  
             hidden = (embeds * norm_alphas).sum(dim = 0)
-            
             hidden_lst.append(hidden)
-            
         hiddens = torch.cat(hidden_lst).reshape(-1, EMBEDDING_DIM)
         prod = hiddens.mm(self.weights)
         return prod
     
-    def compute_norms(self):
-        self.emb_norms = torch.norm(self.word_embeddings.weight.data, dim = 1)
+    
+    
+    def save_dist_info(self):
+        self.best_embeds = self.word_embeddings.weight.data
+        self.best_u = self.attend_u
+    
+    def compute_dist(self):
+        N = self.best_embeds.shape[0]
+        dist_lst = []
+        for i in range(N):
+            dist = self.cosine(self.best_u, self.best_embeds[i])
+            dist_lst.append(dist)
+            
+        dists = torch.tensor(dist_lst)
+        return dists
         
-    def get_norms(self):
-        return self.emb_norms
         
 class BinaryLogLoss(nn.Module):
     def __init__(self):
@@ -121,7 +133,7 @@ def evaluate(epoc, model):
     eval_ratio = evaluate_dataset(model, eval_data)
     if (eval_ratio > best_eval_accu):
         best_eval_accu = eval_ratio
-        model.compute_norms()
+        model.save_dist_info()
         print("epoc=%d eval accuracy=%.2f" %(epoc, eval_ratio))
         test_ratio = evaluate_dataset(model, test_data)
         if (test_ratio > best_test_accu):
@@ -172,14 +184,14 @@ def eval_model(model, loss_fn, epocs):
     
     print("best_test_accu=%.2f" %(best_test_accu))
 
-def print_norms(model):
-    norms = model.get_norms()
-    idxes = norms.argsort()
-    large_15 = idxes[0:15]
-    small_15 = idxes[-15:]
+def print_dist(model):
+    dists = model.compute_dist()
+    idxes = dists.argsort()
+    high_15 = idxes[0:15]
+    low_15 = idxes[-15:]
     w_lst = np.array(all_words)
-    print("15 words with largest norm", list(w_lst[large_15]))
-    print("15 words with smallest norm", list(w_lst[small_15]))
+    print("15 words with highest cosine similarity", list(w_lst[high_15]))
+    print("15 words with lowest cosine similarity", list(w_lst[low_15]))
 
 def main():
     global BATCH_SIZE
@@ -195,7 +207,7 @@ def main():
     model = BinaryClassifier(EMBEDDING_DIM, corpus_size)
     loss_fn = BinaryLogLoss()
     eval_model(model, loss_fn, epocs)
-    print_norms(model)
+    print_dist(model)
     t2 = time.time()
     print("Q1 time=%.3f" %(t2-t1))
     
