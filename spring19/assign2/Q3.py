@@ -173,6 +173,8 @@ def main():
         EARLY_STOP_ITR = int(sys.argv[3])
         if int(sys.argv[4]):
             use_res_conn = True
+        else:
+            use_res_conn = False
     print_para()
     t1 = time.time()
     load_data()
