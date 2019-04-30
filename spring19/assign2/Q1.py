@@ -164,8 +164,8 @@ def eval_model(model, loss_fn, epocs):
 def print_norms(model):
     norms = model.get_norms()
     idxes = norms.argsort()
-    large_15 = idxes[0:15]
-    small_15 = idxes[-15:]
+    small_15 = idxes[0:15]
+    large_15 = idxes[-15:]
     w_lst = np.array(all_words)
     print("15 words with largest norm", list(w_lst[large_15]))
     print("15 words with smallest norm", list(w_lst[small_15]))

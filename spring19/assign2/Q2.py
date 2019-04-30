@@ -12,6 +12,9 @@ BATCH_SIZE = 1
 UNKNOWN_WORD = "_unk_"
 all_words = []
 word_to_idx = {}
+word_freqs = {}
+top_freq_words = {}
+freq_word_probs = {}
 training_data = []
 eval_data = []
 test_data = []
@@ -54,18 +57,7 @@ class BinaryClassifier(nn.Module):
     
     def save_dist_info(self):
         self.best_embeds = self.word_embeddings.weight.data
-        self.best_u = self.attend_u
-    
-    def compute_dist(self):
-        N = self.best_embeds.shape[0]
-        dist_lst = []
-        for i in range(N):
-            dist = self.cosine(self.best_u, self.best_embeds[i])
-            dist_lst.append(dist)
-            
-        dists = torch.tensor(dist_lst)
-        return dists
-        
+        self.best_u = self.attend_u    
         
 class BinaryLogLoss(nn.Module):
     def __init__(self):
@@ -97,6 +89,10 @@ def load_dataset(path, ret_data, is_train = False):
                     all_words.append(word)
                     idx += 1
                 w_id = word_to_idx[word]
+                freq = 0
+                if w_id in word_freqs:
+                    freq = word_freqs[w_id]
+                word_freqs[w_id] = freq + 1
             else:
                 if not word in word_to_idx:
                     w_id = unk_id
@@ -106,10 +102,12 @@ def load_dataset(path, ret_data, is_train = False):
         ts_x = torch.tensor(x, dtype = torch.long)
         pair = (ts_x, y)
         ret_data.append(pair)
-        
+
     if is_train:
         all_words.append(UNKNOWN_WORD)
         word_to_idx[UNKNOWN_WORD] = len(all_words) - 1
+        global top_freq_words
+        top_freq_words = dict(filter(lambda x: x[1] >= 100, word_freqs.items()))
     
 def evaluate_dataset(model, data):
     sig = nn.Sigmoid()
@@ -182,8 +180,18 @@ def eval_model(model, loss_fn, epocs):
     
     print("best_test_accu=%.2f" %(best_test_accu))
 
-def print_dist(model):
-    dists = model.compute_dist()
+def print_result(model):
+    model.eval()
+    print_similarity(model)
+    print_atten_stat(model)
+    model.train()
+def print_similarity(model):
+    N = model.best_embeds.shape[0]
+    dist_lst = []
+    for i in range(N):
+        dist = model.cosine(model.best_u, model.best_embeds[i])
+        dist_lst.append(dist)
+    dists = torch.tensor(dist_lst)
     idxes = dists.argsort()
     high_15 = idxes[0:15]
     low_15 = idxes[-15:]
@@ -191,6 +199,52 @@ def print_dist(model):
     print("15 words with highest cosine similarity", list(w_lst[high_15]))
     print("15 words with lowest cosine similarity", list(w_lst[low_15]))
 
+def print_atten_stat(model):
+    data_x_s, _ = get_data_x_y(training_data)
+    for ts_word_idxs in data_x_s:
+        word_idxs = ts_word_idxs.tolist()
+        top_word_poses = []
+        num_words = len(word_idxs)
+        for pos in range(num_words):
+            idx = word_idxs[pos]
+            if idx in top_freq_words:
+                top_word_poses.append(pos)
+                
+        if len(top_word_poses) > 0:
+            embeds = model.best_embeds[word_idxs]
+            sent_len = embeds.shape[0]
+            dist_lst = []
+            for i in range(sent_len):
+                dist = model.cosine(model.best_u, embeds[i]).reshape(1,1)
+                dist_lst.append(dist)
+            dists = torch.cat(dist_lst, dim = 0)
+            alphas = torch.exp(dists)
+            norm_alphas = nn.functional.normalize(alphas, p = 1, dim = 0).reshape(sent_len, 1)
+            top_probs = norm_alphas[top_word_poses]
+            for pos in top_word_poses:
+                idx = word_idxs[pos]
+                prob_lst = None
+                if not idx in freq_word_probs:
+                    prob_lst = []
+                    freq_word_probs[idx] = prob_lst
+                else:
+                    prob_lst = freq_word_probs[idx]
+                prob_lst.append(top_probs)
+        
+    freq_word_stat = {}
+    for idx in freq_word_probs:
+        prob_lst = freq_word_probs[idx]
+        ts_probs = torch.cat(prob_lst)
+        freq_word_probs[idx] = ts_probs
+        stat = ts_probs.std() / ts_probs.mean()
+        freq_word_stat[idx] = stat.item()
+    
+    sorted_stat = sorted(freq_word_stat.items(), key=lambda x: x[1], reverse = True)
+    top_30_stat = sorted_stat[:30]
+    top_30_idxes = list(list(zip(*top_30_stat))[0])
+    top_30_words = np.array(all_words)[top_30_idxes]
+    print("top 30 words under std/mean:\n", top_30_words)
+    
 def main():
     global BATCH_SIZE
     global EARLY_STOP_ITR
@@ -205,9 +259,9 @@ def main():
     model = BinaryClassifier(EMBEDDING_DIM, corpus_size)
     loss_fn = BinaryLogLoss()
     eval_model(model, loss_fn, epocs)
-    print_dist(model)
     t2 = time.time()
     print("Q1 time=%.3f" %(t2-t1))
+    print_result(model)
     
 if __name__ == '__main__':
     main()
