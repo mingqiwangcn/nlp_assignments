@@ -113,9 +113,10 @@ def evaluate(epoc, model):
         model.compute_norms()
         print("epoc=%d eval accuracy=%.2f" %(epoc, eval_ratio))
         test_ratio = evaluate_dataset(model, test_data)
+        print("epoc=%d test accuracy=%.2f" %(epoc, test_ratio))
         if (test_ratio > best_test_accu):
             best_test_accu = test_ratio
-            print("epoc=%d test accuracy=%.2f" %(epoc, test_ratio))
+            
     model.train()
 
 def load_data():
