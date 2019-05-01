@@ -36,12 +36,13 @@ class BinaryClassifier(nn.Module):
         for word_idxs in batch_word_idxs:
             embeds = self.word_embeddings(word_idxs)
             atten = embeds.mm(embeds.t()).sum(dim = 0).reshape(-1, 1)
-            hidden_self = (embeds * atten).sum(dim = 0)
+            normed_atten = torch.nn.functional.softmax(atten, dim = 0)
+            hidden_self = (embeds * normed_atten).sum(dim = 0)
             hidden = hidden_self
             if use_res_conn:
                 hidden += embeds.mean(dim = 0)
             
-            hidden_lst.append(hidden_self)
+            hidden_lst.append(hidden)
         hiddens = torch.cat(hidden_lst).reshape(-1, EMBEDDING_DIM)
         prod = hiddens.mm(self.weights)
         return prod
