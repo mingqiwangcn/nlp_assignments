@@ -6,7 +6,6 @@ import numpy as np
 import time
 import sys
 
-use_res_conn = True
 EARLY_STOP_ITR = 100
 EMBEDDING_DIM = 100
 BATCH_SIZE = 1
@@ -181,14 +180,11 @@ def main():
     global EARLY_STOP_ITR
     global use_res_conn
     epocs = 1
-    if len(sys.argv) > 4:
+    if len(sys.argv) > 3:
         epocs = int(sys.argv[1])
         BATCH_SIZE = int(sys.argv[2])
         EARLY_STOP_ITR = int(sys.argv[3])
-        if int(sys.argv[4]):
-            use_res_conn = True
-        else:
-            use_res_conn = False
+        
     print_para()
     t1 = time.time()
     load_data()
