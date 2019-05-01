@@ -173,7 +173,7 @@ def eval_model(model, loss_fn, epocs):
     print("best_test_accu=%.2f" %(best_test_accu))
 
 def print_para():
-    print("batch size=%d, residual connection = %d" %(BATCH_SIZE, use_res_conn))
+    print("batch size=%d" %(BATCH_SIZE))
  
 def main():
     global BATCH_SIZE
