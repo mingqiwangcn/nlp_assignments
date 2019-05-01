@@ -193,8 +193,8 @@ def print_similarity(model):
         dist_lst.append(dist)
     dists = torch.tensor(dist_lst)
     idxes = dists.argsort()
-    high_15 = idxes[0:15]
-    low_15 = idxes[-15:]
+    high_15 = idxes[-15:]
+    low_15 = idxes[0:15]
     w_lst = np.array(all_words)
     print("15 words with highest cosine similarity", list(w_lst[high_15]))
     print("15 words with lowest cosine similarity", list(w_lst[low_15]))
