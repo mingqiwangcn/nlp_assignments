@@ -70,13 +70,12 @@ def init_corpus_tags():
     
 def normalize_probs(probs):
     probs_sum = np.sum(probs, axis=1, keepdims=True)
-    norm_probs = probs / probs_sum
+    norm_probs = np.around(probs / probs_sum, 6)
     norm_probs_sum = np.sum(norm_probs, axis=1)
     probs_diff = norm_probs_sum - 1
     idxes = np.argmax(norm_probs, axis=1)
     for i in range(len(idxes)):
         norm_probs[i][idxes[i]] += probs_diff[i]
-    
     return norm_probs
     
 def init_transition_probs():
@@ -128,6 +127,8 @@ def print_top_probs():
         pair = (all_tags[idx], probs[idx])
         top_5_pairs.append(pair)
     
+    top_5_pairs = sorted(top_5_pairs, key=lambda x: x[1], reverse = True)
+    
     print(top_5_pairs)
     
     probs = emission_probs[tag_to_idx["JJ"]]
@@ -138,7 +139,8 @@ def print_top_probs():
         idx = top_10_idxes[i]
         pair = (all_words[idx], probs[idx])
         top_10_pairs.append(pair)
-         
+    
+    top_10_pairs = sorted(top_10_pairs, key=lambda x: x[1], reverse = True)
     print(top_10_pairs)
 
 def main():
