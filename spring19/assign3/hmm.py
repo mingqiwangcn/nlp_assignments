@@ -1,9 +1,5 @@
 import numpy as np
 
-START_TAG = "<s>"
-STOP_TAG = "</s>"
-EMBEDDING_DIM = 100
-BATCH_SIZE = 1
 all_words = []
 word_to_idx = {}
 tag_to_idx = {}
@@ -188,4 +184,97 @@ def local_predict():
         
     accuracy = round(num_right / num_tokens, 6)
     return (predict_data, accuracy)
-    
+
+def greedy_left_right():
+    num_tokens = 0
+    num_right = 0
+    predict_data = []
+    for pair in dev_data:
+        x_s = pair[0]
+        y_s_m = []
+        num_tokens += len(x_s)
+        tr_probs = start_probs
+        for i in range(len(x_s)-1):
+            scores = np.log(emission_probs[:,x_s[i]]) + np.log(tr_probs) 
+            y_m = np.argmax(scores)
+            y_s_m.append(y_m)
+            tr_probs = transition_probs[y_m]
+        
+        scores = np.log(emission_probs[:,x_s[len(x_s)-1]]) + np.log(tr_probs) + np.log(stop_probs) 
+        y_m = np.argmax(scores)
+        y_s_m.append(y_m)
+        
+        predict_data.append((x_s, y_s_m))
+        y_s = pair[1]
+        diff = np.sum(np.array(y_s) == np.array(y_s_m))
+        num_right += np.sum(diff)
+        
+    accuracy = round(num_right / num_tokens, 6)
+    return (predict_data, accuracy)
+
+def greedy_right_left():
+    num_tokens = 0
+    num_right = 0
+    predict_data = []
+    for pair in dev_data:
+        x_s = pair[0]
+        y_s_m = []
+        num_tokens += len(x_s)
+        tr_probs = stop_probs
+        for i in range(len(x_s)-1, 0, -1):
+            scores = np.log(emission_probs[:,x_s[i]]) + np.log(tr_probs) 
+            y_m = np.argmax(scores)
+            y_s_m.append(y_m)
+            tr_probs = transition_probs[y_m]
+        
+        scores = np.log(emission_probs[:,0]) + np.log(tr_probs) + np.log(start_probs) 
+        y_m = np.argmax(scores)
+        y_s_m.append(y_m)
+        y_s_m.reverse()
+        
+        predict_data.append((x_s, y_s_m))
+        y_s = pair[1]
+        diff = np.sum(np.array(y_s) == np.array(y_s_m))
+        num_right += np.sum(diff)
+        
+    accuracy = round(num_right / num_tokens, 6)
+    return (predict_data, accuracy)
+
+def viterbi_infer():
+    num_tokens = 0
+    num_right = 0
+    predict_data = []
+    for pair in dev_data:
+        x_s = pair[0]
+        y_s_m = []
+        num_tokens += len(x_s)
+        scores = np.zeros((len(x_s), len(all_tags)))
+        for i in range(len(all_tags)):
+            scores[0,i] = np.log(emission_probs[i, x_s[0]]) + np.log(start_probs[i])
+            
+        for i in range(1, len(x_s)):    
+            for j in range(len(all_tags)):
+                tag_scores = np.log(emission_probs[j,x_s[i]]) + np.log(transition_probs[:,j]) + \
+                             scores[i-1,:]
+                scores[i,j] = np.max(tag_scores)
+        
+        tag_scores = np.log(stop_probs) + scores[len(x_s)-1,:]
+        y_m = np.argmax(tag_scores)
+        y_s_m.append(y_m)
+        i = len(x_s) - 1
+        while i > 0:
+            tag_scores = np.log(emission_probs[y_m,x_s[i]]) + \
+                         np.log(transition_probs[:,y_m]) + \
+                         scores[i-1,:]
+            y_m = np.argmax(tag_scores)
+            y_s_m.append(y_m)
+            i -= 1
+            
+        y_s_m.reverse()
+        predict_data.append((x_s, y_s_m))
+        y_s = pair[1]
+        diff = np.sum(np.array(y_s) == np.array(y_s_m))
+        num_right += np.sum(diff)
+        
+    accuracy = round(num_right / num_tokens, 6)
+    return (predict_data, accuracy)
