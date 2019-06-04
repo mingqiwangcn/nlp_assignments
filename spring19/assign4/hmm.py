@@ -137,7 +137,7 @@ def print_top_probs():
     top_10_pairs = sorted(top_10_pairs, key=lambda x: x[1], reverse = True)
     print(top_10_pairs)
 
-def print_dev_log_prob(data):
+def compute_log_prob(data):
     sum_log_prob = .0
     for pair in data:
         x_s = pair[0]
@@ -157,7 +157,7 @@ def print_dev_log_prob(data):
             idx_2 = x_s[i]
             sum_log_prob += np.log(emission_probs[idx_1, idx_2])
             
-    print("log probability:", sum_log_prob)
+    return sum_log_prob
 
 def prepare():
     load_data()
