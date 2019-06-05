@@ -12,11 +12,12 @@ def norm_vec_probs(prob_weights, beta):
         
     return probs
 
-def gibbs_sampling_tags(Xs, K, beta, all_samples= None):
+def gibbs_sampling_tags(Xs, K, start_beta, all_samples= None, step_beta=None):
     T = len(Xs)
     M = len(hmm.all_tags)
     y_probs = np.zeros((T, M)) 
     Ys = np.random.choice(M, T)
+    beta = start_beta
     for itr in range(K):
         #compute probs of Y_0
         y_probs[0,:] = np.log(hmm.start_probs[:]) + \
@@ -49,38 +50,16 @@ def gibbs_sampling_tags(Xs, K, beta, all_samples= None):
         
         if not all_samples is None:
             all_samples.append(Ys)
+        
+        if not step_beta is None:
+            beta += step_beta
             
     return Ys 
 
-def sampling(K, beta):
+def sampling(K, beta, step_beta=None):
     predict_data = []
     for Xs, _ in hmm.dev_data:
-        Ys = gibbs_sampling_tags(Xs, K, beta)
+        Ys = gibbs_sampling_tags(Xs, K, beta, None, step_beta)
         predict_data.append((Xs, Ys))
     return predict_data
 
-def main():
-    hmm.prepare()
-    N = len(hmm.dev_data)
-    for K in (2,5,10,50,100,500,1000):
-        t1 = time.time()
-        predict_data = sampling(K, 1)
-        t2 = time.time()
-        total_T = 0
-        total_match = 0
-        for i in range(N):
-            Xs, labels = hmm.dev_data[i]
-            _, Ys = predict_data[i]
-            T = len(Xs)
-            num_match = np.sum(np.array(Ys) == np.array(labels))
-            total_T += T
-            total_match += num_match
-            
-        accuracy = total_match / total_T
-        log_prob = hmm.compute_log_prob(predict_data)
-        print("K=%d, Accuracy=%.6f, time=%.1fs, log probability=%.3f" \
-              %(K, accuracy, t2-t1, log_prob))
-    
-if __name__ == '__main__':
-    main()
-    
