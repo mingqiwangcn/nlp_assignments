@@ -187,7 +187,7 @@ def main():
             
             count += 1
             
-            if (count % 1000 == 0):
+            if (count % 5000 == 0):
                 t2 = time.time()
                 print("t2-t1:", t2-t1)
                 print("len(Xs)=%d num_seg=%d count=%d" %(M, num_seg ,count))
