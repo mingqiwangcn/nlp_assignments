@@ -126,9 +126,10 @@ def sampling(X, last_info, b, i, s, seg_dict, beta, gamma, char_probs):
     r1, r2 = compute_range(b, i)    
     prob_0 = choose_0_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, char_probs)
     prob_1 = choose_1_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs)
-    p0 = prob_0 / (prob_0 + prob_1)
-    probs = [p0, 1.0 - p0]
-    sample = np.random.choice([0, 1], 1, p = probs)
+    #p0 = prob_0 / (prob_0 + prob_1)
+    #probs = [p0, 1.0 - p0]
+    #sample = np.random.choice([0, 1], 1, p = probs)
+    sample = 1 if prob_1 >= prob_0 else 0
     prev_val = b[i]
     if (prev_val != sample):
         y_prev = X[r1:i+1]
