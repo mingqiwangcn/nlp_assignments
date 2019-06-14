@@ -279,7 +279,7 @@ def main():
     print("beta=%.1f gamma=%.1f s=%.1f char_dist_type=%s start_prob_tao=%.1f" \
           %(beta, gamma, s, str(char_dist_type), start_prob_tao ))
         
-    np.random.seed(100)
+    np.random.seed(1)
     Xs = load_characters("./31210-s19-hw5/cbt-characters.txt", gamma)
     labels = load_labels("./31210-s19-hw5/cbt-boundaries.txt")
     char_dict, seg_dict = preprocess(Xs)
