@@ -226,11 +226,11 @@ def top_200_segs(seg_dict):
     top_200 = sorted_segs[:200]
     segs = list(list(zip(*top_200))[0])
     str_segs = " ".join(segs)
-    print("top 200 segs:")
+    print("top 200 segs")
     print(str_segs)
 
 def first_20_sentences(Xs):
-    print("first 20 sentences:")
+    print("first 20 sentences")
     for i in range(20):
         X, b, _ = Xs[i]
         words = []
@@ -242,6 +242,7 @@ def first_20_sentences(Xs):
             else:
                 words.append(' ')
         str_words = " ".join(words)
+        print("sentence %d\r" %(i))
         print(str_words)
     
         
