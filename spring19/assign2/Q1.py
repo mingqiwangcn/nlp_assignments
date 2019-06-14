@@ -5,7 +5,6 @@ import torch.optim as optim
 import numpy as np
 import time
 import sys
-from numpy import dtype
 
 EARLY_STOP_ITR = 100
 EMBEDDING_DIM = 100
