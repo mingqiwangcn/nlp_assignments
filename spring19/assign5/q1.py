@@ -276,8 +276,8 @@ def main():
     if num_arg > 7:
         prob_anneal_flag = 1
     
-    print("beta=%.1f gamma=%.1f s=%.1f char_dist_type=%s start_prob_tao=%.1f" \
-          %(beta, gamma, s, str(char_dist_type), start_prob_tao ))
+    print("num_iter=%d beta=%.1f gamma=%.1f s=%.1f char_dist_type=%s start_prob_tao=%.1f" \
+          %(num_itr, beta, gamma, s, str(char_dist_type), start_prob_tao ))
         
     np.random.seed(1)
     Xs = load_characters("./31210-s19-hw5/cbt-characters.txt", gamma)
