@@ -181,23 +181,16 @@ def main():
     
     num_char = len(char_dict)
     char_probs = dict.fromkeys(char_dict.keys(), 1.0 / num_char)
-    M = len(Xs)
     for itr in range(num_itr):
-        count = 0
         num_b_changed = 0
         t1 = time.time()
         for X, b, last_info in Xs:
             N = len(X)
             for i in range(N - 1):
                 sampling(X, last_info, b, i, s, seg_dict, beta, gamma, char_probs)
-            
-            count += 1
-            
-            if (count % 5000 == 0):
-                t2 = time.time()
-                print("num_changed=%d num_seg=%d count=%d time=%.3f" %(num_b_changed, num_seg ,count, t2-t1))
-        
                 
+        t2 = time.time()
+        print("num_changed=%d num_seg=%d time=%.3f" %(num_b_changed, num_seg , t2-t1))
         total, correct = evaluate(Xs, labels)
         accuracy = np.round(correct / total, 6)
         print("itr=%d  accuracy=%d/%d=%.6f" %(itr, correct, total, accuracy))
