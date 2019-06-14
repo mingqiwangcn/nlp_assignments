@@ -75,7 +75,8 @@ def choose_0_prob(X, b, i, r1, r2, s, seg_dict, beta, char_probs):
     else:
         num_seg_o = num_seg
     prob = (n_full_o + s * G0(y_full, beta, char_probs)) / (num_seg_o + s)
-    return prob, 
+    
+    return prob 
 
 def choose_1_prob(X, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs):
     changed = (b[i] == 0)
@@ -86,7 +87,7 @@ def choose_1_prob(X, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs):
         seg_dict[y_prev]
     num_y_next_o = 0
     if y_next in seg_dict:
-        y_next = seg_dict[y_next]
+        num_y_next_o = seg_dict[y_next]
         
     num_seg_o = num_seg
     if changed:
@@ -98,7 +99,7 @@ def choose_1_prob(X, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs):
                     s * G0(y_next, beta, char_probs)
     f3_2 = (num_seg_o + 1 + s)
     
-    log_prob_sum = np.log([f1, f2, f3_1/f3_2]).sum
+    log_prob_sum = np.log([f1, f2, f3_1/f3_2]).sum()
     prob = np.exp(log_prob_sum)
     return prob
 
@@ -154,8 +155,11 @@ def main():
     Xs = load_characters("./31210-s19-hw5/cbt-characters.txt", gamma)
     labels = load_labels("./31210-s19-hw5/cbt-boundaries.txt")
     char_dict, seg_dict = preprocess(Xs)
+    global num_seg
+    num_seg = len(seg_dict)
+    
     N = len(char_dict)
-    char_probs = dict.fromkeys(char_dict.iterkeys(), 1.0 / N)
+    char_probs = dict.fromkeys(char_dict.keys(), 1.0 / N)
     
     for itr in range(num_itr):
         for X, b in Xs:
