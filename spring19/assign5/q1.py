@@ -2,6 +2,7 @@ import time
 import numpy as np
 import sys
 
+NUM_SENT = 5000
 num_seg = 0
 num_b_changed = 0
 
@@ -16,7 +17,7 @@ def load_characters(path, gamma):
         b[N-1] = 1
         last_info = [[False, None, None]] * N
         Xs.append((X, b, last_info))
-    Xs = Xs[0: int(len(Xs)/2)]
+    Xs = Xs[0: NUM_SENT]
     return Xs
 
 def load_labels(path):
@@ -26,7 +27,7 @@ def load_labels(path):
         label = line.rstrip()
         b = np.array([int(ch) for ch in label])
         bs.append(b)
-    return bs
+    return bs[0:NUM_SENT]
 
 def preprocess(Xs):
     char_dict = {}
