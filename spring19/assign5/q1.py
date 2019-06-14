@@ -230,6 +230,7 @@ def top_200_segs(seg_dict):
     print(str_segs)
 
 def first_20_sentences(Xs):
+    print("first 20 sentences:")
     for i in range(20):
         X, b, _ = Xs[i]
         words = []
@@ -241,7 +242,6 @@ def first_20_sentences(Xs):
             else:
                 words.append(' ')
         str_words = " ".join(words)
-        print("first 20 sentences:")
         print(str_words)
     
         
