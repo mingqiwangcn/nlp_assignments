@@ -8,12 +8,22 @@ def load_characters(path, gamma):
     file = open(path, "r")
     probs = [1.0 - gamma, gamma]
     Xs = []
-    for X in file:
+    for line in file:
+        X = line.rstrip()
         N = len(X)
         b = np.random.choice([0, 1], N, p=probs)
         b[N-1] = 1
         Xs.append((X, b))
     return Xs
+
+def load_labels(path):
+    file = open(path, "r")
+    bs = []
+    for line in file:
+        label = line.rstrip()
+        b = np.array([int(ch) for ch in label])
+        bs.append(b)
+    return bs
 
 def preprocess(Xs):
     char_dict = {}
@@ -27,7 +37,7 @@ def preprocess(Xs):
         N = len(X)
         i = 0
         j = 0
-        while (j <= N):
+        while (j < N):
             if b[j] == 1:
                 y = X[i:j+1]
                 seg_dict[y] = (1 if not y in seg_dict else seg_dict[y] + 1) 
@@ -116,6 +126,18 @@ def sampling(X, b, i, s, seg_dict, beta, gamma, char_probs):
             seg_dict[y_prev] = 1 if (not y_prev in seg_dict) else seg_dict[y_prev] + 1
             seg_dict[y_next] = 1 if (not y_next in seg_dict) else seg_dict[y_next] + 1
             num_seg += 1
+
+
+def evaluate(Xs, labels):
+    M = len(Xs)
+    total = 0
+    correct = 0
+    for i in range(M):
+        b = Xs[i][1][:-1]
+        label = labels[i][:-1]
+        total += len(b)
+        correct += np.sum(b == label)
+    return total, correct
         
 def main():
     num_itr = 10
@@ -128,7 +150,9 @@ def main():
         gamma = int(sys.argv[3])
         s = int(sys.argv[4])
          
+    np.random.seed(100)
     Xs = load_characters("./31210-s19-hw5/cbt-characters.txt", gamma)
+    labels = load_labels("./31210-s19-hw5/cbt-boundaries.txt")
     char_dict, seg_dict = preprocess(Xs)
     N = len(char_dict)
     char_probs = dict.fromkeys(char_dict.iterkeys(), 1.0 / N)
@@ -136,9 +160,12 @@ def main():
     for itr in range(num_itr):
         for X, b in Xs:
             N = len(Xs)
-            for i in range(N):
+            for i in range(N - 1):
                 sampling(X, b, i, s, seg_dict, beta, gamma, char_probs)
+                
+        total, correct = evaluate(Xs, labels)
+        accuracy = np.round(correct / total, 6)
+        print("itr=%d  accuracy=%d/%d=%.6f" %(itr, correct, total, accuracy))
         
-    
 if __name__ == '__main__':
     main()
