@@ -277,6 +277,7 @@ def main():
         prob_anneal_flag = 1
     
     str_dist_type = (str(char_dist_type).split('.'))[1]
+    str_dist_type = str_dist_type.lower()
     print("num_itr=%d beta=%.1f gamma=%.1f s=%.1f char_dist_type=%s start_prob_tao=%.1f" \
           %(num_itr, beta, gamma, s, str_dist_type, start_prob_tao ))
         
