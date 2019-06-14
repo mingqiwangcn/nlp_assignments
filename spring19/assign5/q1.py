@@ -16,6 +16,7 @@ def load_characters(path, gamma):
         b[N-1] = 1
         last_info = [[False, None, None]] * N
         Xs.append((X, b, last_info))
+    Xs = Xs[0: int(len(Xs)/2)]
     return Xs
 
 def load_labels(path):
