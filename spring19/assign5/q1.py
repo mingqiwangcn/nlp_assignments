@@ -309,6 +309,7 @@ def main():
         
     for itr in range(num_itr):
         if (prob_anneal_flag == 1):
+            prob_tao += step_tao
             print("prob_tao=%.2f" %(prob_tao))
         num_b_changed = 0
         t1 = time.time()
@@ -322,9 +323,6 @@ def main():
         accuracy = np.round(correct / total, 6)
         print("itr=%d num_changed=%d num_seg=%d accuracy=%d/%d=%.6f time=%.3f" \
                %(itr, num_b_changed, num_seg, correct, total, accuracy, t2-t1))
-        
-        if (prob_anneal_flag == 1):
-            prob_tao += step_tao
     
     top_200_segs(seg_dict)
     
