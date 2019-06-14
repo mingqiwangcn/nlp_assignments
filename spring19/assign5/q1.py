@@ -310,6 +310,7 @@ def main():
     step_tao = 0
     if (prob_anneal_flag == 1):
         step_tao = (stop_prob_tao - start_prob_tao) / (num_itr - 1)
+        step_tao = np.round(step_tao, 2)
         
     for itr in range(num_itr):
         if (prob_anneal_flag == 1):
