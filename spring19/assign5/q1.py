@@ -166,12 +166,18 @@ def main():
     beta = 0.5
     gamma = 0.5
     s = 1
-    if len(sys.argv) > 4:
+    num_arg = len(sys.argv)
+    if num_arg > 1:
         num_itr = int(sys.argv[1])
-        beta = int(sys.argv[2])
-        gamma = int(sys.argv[3])
-        s = int(sys.argv[4])
-         
+    if num_arg > 2:
+        beta = float(sys.argv[2])
+    if num_arg > 3:
+        gamma = float(sys.argv[3])
+    if num_arg > 4:
+        s = float(sys.argv[4])
+    
+    print("beta=%.1f gamma=%.1f s=%.1f" %(beta, gamma, s))
+        
     np.random.seed(100)
     Xs = load_characters("./31210-s19-hw5/cbt-characters.txt", gamma)
     labels = load_labels("./31210-s19-hw5/cbt-boundaries.txt")
@@ -190,10 +196,10 @@ def main():
                 sampling(X, last_info, b, i, s, seg_dict, beta, gamma, char_probs)
                 
         t2 = time.time()
-        print("num_changed=%d num_seg=%d time=%.3f" %(num_b_changed, num_seg , t2-t1))
         total, correct = evaluate(Xs, labels)
         accuracy = np.round(correct / total, 6)
-        print("itr=%d  accuracy=%d/%d=%.6f" %(itr, correct, total, accuracy))
+        print("itr=%d num_changed=%d num_seg=%d accuracy=%d/%d=%.6f time=%.3f" \
+               %(itr, num_b_changed, num_seg, correct, total, accuracy, t2-t1))
         
 if __name__ == '__main__':
     main()
