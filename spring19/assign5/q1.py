@@ -3,6 +3,7 @@ import numpy as np
 import sys
 
 num_seg = 0
+num_b_changed = 0
 
 def load_characters(path, gamma):
     file = open(path, "r")
@@ -119,10 +120,11 @@ def choose_1_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, gamma, char_pro
 
 def sampling(X, last_info, b, i, s, seg_dict, beta, gamma, char_probs):
     global num_seg
+    global num_b_changed
     r1, r2 = compute_range(b, i)    
     prob_0 = choose_0_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, char_probs)
     prob_1 = choose_1_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs)
-    p0 = prob_0/ (prob_0 + prob_1)
+    p0 = prob_0 / (prob_0 + prob_1)
     probs = [p0, 1.0 - p0]
     sample = np.random.choice([0, 1], 1, p = probs)
     prev_val = b[i]
@@ -136,12 +138,14 @@ def sampling(X, last_info, b, i, s, seg_dict, beta, gamma, char_probs):
             seg_dict[y_full] = 1 if (not y_full in seg_dict) else seg_dict[y_full] + 1 
             num_seg -= 1
             last_info[i][0] = True
+            num_b_changed += 1
         elif(prev_val == 0 and sample == 1):
             seg_dict[y_full] -= 1
             seg_dict[y_prev] = 1 if (not y_prev in seg_dict) else seg_dict[y_prev] + 1
             seg_dict[y_next] = 1 if (not y_next in seg_dict) else seg_dict[y_next] + 1
             num_seg += 1
             last_info[i][0] = True
+            num_b_changed += 1
             
     b[i] = sample
 
@@ -157,6 +161,7 @@ def evaluate(Xs, labels):
     return total, correct
         
 def main():
+    global num_b_changed
     num_itr = 10
     beta = 0.5
     gamma = 0.5
@@ -179,6 +184,7 @@ def main():
     M = len(Xs)
     for itr in range(num_itr):
         count = 0
+        num_b_changed = 0
         t1 = time.time()
         for X, b, last_info in Xs:
             N = len(X)
@@ -189,8 +195,7 @@ def main():
             
             if (count % 5000 == 0):
                 t2 = time.time()
-                print("t2-t1:", t2-t1)
-                print("len(Xs)=%d num_seg=%d count=%d" %(M, num_seg ,count))
+                print("num_changed=%d num_seg=%d count=%d time=%.3f" %(num_b_changed, num_seg ,count, t2-t1))
         
                 
         total, correct = evaluate(Xs, labels)
