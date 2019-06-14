@@ -168,6 +168,7 @@ def main():
     beta = 0.5
     gamma = 0.5
     s = 1
+    uniform_char_dist = 1
     num_arg = len(sys.argv)
     if num_arg > 1:
         num_itr = int(sys.argv[1])
@@ -177,8 +178,10 @@ def main():
         gamma = float(sys.argv[3])
     if num_arg > 4:
         s = float(sys.argv[4])
+    if num_arg > 5:
+        uniform_char_dist = int(sys.argv[5]) 
     
-    print("beta=%.1f gamma=%.1f s=%.1f" %(beta, gamma, s))
+    print("beta=%.1f gamma=%.1f s=%.1f uniform_char=%d" %(beta, gamma, s, uniform_char_dist))
         
     np.random.seed(100)
     Xs = load_characters("./31210-s19-hw5/cbt-characters.txt", gamma)
@@ -188,7 +191,15 @@ def main():
     num_seg = np.sum(list(seg_dict.values()))
     
     num_char = len(char_dict)
-    char_probs = dict.fromkeys(char_dict.keys(), 1.0 / num_char)
+    char_probs = None
+    if uniform_char_dist == 1:
+        char_probs = dict.fromkeys(char_dict.keys(), 1.0 / num_char)
+    else:
+        char_probs = {}
+        total_char_count = np.sum(list(char_dict.values()))
+        for ch in char_dict:
+            char_probs[ch] = char_dict[ch] / total_char_count
+        
     for itr in range(num_itr):
         num_b_changed = 0
         t1 = time.time()
