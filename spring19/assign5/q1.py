@@ -13,7 +13,8 @@ def load_characters(path, gamma):
         N = len(X)
         b = np.random.choice([0, 1], N, p=probs)
         b[N-1] = 1
-        Xs.append((X, b))
+        last_info = [[False, None, None]] * N
+        Xs.append((X, b, last_info))
     return Xs
 
 def load_labels(path):
@@ -28,7 +29,7 @@ def load_labels(path):
 def preprocess(Xs):
     char_dict = {}
     seg_dict = {}
-    for X, b in Xs:
+    for X, b, _ in Xs:
         for ch in X:
             if not ch in char_dict:
                 char_dict[ch] = 1
@@ -63,8 +64,11 @@ def compute_range(b, i):
     r2 += 1
     return r1, r2
 
-def choose_0_prob(X, b, i, r1, r2, s, seg_dict, beta, char_probs):
+def choose_0_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, char_probs):
     changed = (b[i] == 1)
+    if (not last_info[i][0]) and (not last_info[i][1] is None):
+        return last_info[i][1]
+    
     n_full_o = 0
     num_seg_o = 0
     y_full = X[r1:r2+1]
@@ -74,12 +78,19 @@ def choose_0_prob(X, b, i, r1, r2, s, seg_dict, beta, char_probs):
         num_seg_o = num_seg - 2
     else:
         num_seg_o = num_seg
+    
     prob = (n_full_o + s * G0(y_full, beta, char_probs)) / (num_seg_o + s)
+    
+    last_info[i][1] = prob
     
     return prob 
 
-def choose_1_prob(X, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs):
+def choose_1_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs):
     changed = (b[i] == 0)
+    
+    if (not last_info[i][0]) and (not last_info[i][2] is None):
+        return last_info[i][2]
+    
     y_prev = X[r1:i+1]
     y_next = X[i+1:r2+1]
     num_y_prev_o = 0
@@ -101,18 +112,20 @@ def choose_1_prob(X, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs):
     
     log_prob_sum = np.log([f1, f2, f3_1/f3_2]).sum()
     prob = np.exp(log_prob_sum)
+    
+    last_info[i][2] = prob
+    
     return prob
 
-def sampling(X, b, i, s, seg_dict, beta, gamma, char_probs):
+def sampling(X, last_info, b, i, s, seg_dict, beta, gamma, char_probs):
     global num_seg
     r1, r2 = compute_range(b, i)    
-    prob_0 = choose_0_prob(X, b, i, r1, r2, s, seg_dict, beta, char_probs)
-    prob_1 = choose_1_prob(X, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs)
+    prob_0 = choose_0_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, char_probs)
+    prob_1 = choose_1_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, gamma, char_probs)
     p0 = prob_0/ (prob_0 + prob_1)
     probs = [p0, 1.0 - p0]
     sample = np.random.choice([0, 1], 1, p = probs)
     prev_val = b[i]
-    b[i] = sample
     if (prev_val != sample):
         y_prev = X[r1:i+1]
         y_next = X[i+1:r2+1]
@@ -122,12 +135,15 @@ def sampling(X, b, i, s, seg_dict, beta, gamma, char_probs):
             seg_dict[y_next] -= 1
             seg_dict[y_full] = 1 if (not y_full in seg_dict) else seg_dict[y_full] + 1 
             num_seg -= 1
+            last_info[i][0] = True
         elif(prev_val == 0 and sample == 1):
             seg_dict[y_full] -= 1
             seg_dict[y_prev] = 1 if (not y_prev in seg_dict) else seg_dict[y_prev] + 1
             seg_dict[y_next] = 1 if (not y_next in seg_dict) else seg_dict[y_next] + 1
             num_seg += 1
-
+            last_info[i][0] = True
+            
+    b[i] = sample
 
 def evaluate(Xs, labels):
     M = len(Xs)
@@ -156,16 +172,26 @@ def main():
     labels = load_labels("./31210-s19-hw5/cbt-boundaries.txt")
     char_dict, seg_dict = preprocess(Xs)
     global num_seg
-    num_seg = len(seg_dict)
+    num_seg = np.sum(list(seg_dict.values()))
     
-    N = len(char_dict)
-    char_probs = dict.fromkeys(char_dict.keys(), 1.0 / N)
-    
+    num_char = len(char_dict)
+    char_probs = dict.fromkeys(char_dict.keys(), 1.0 / num_char)
+    M = len(Xs)
     for itr in range(num_itr):
-        for X, b in Xs:
-            N = len(Xs)
+        count = 0
+        t1 = time.time()
+        for X, b, last_info in Xs:
+            N = len(X)
             for i in range(N - 1):
-                sampling(X, b, i, s, seg_dict, beta, gamma, char_probs)
+                sampling(X, last_info, b, i, s, seg_dict, beta, gamma, char_probs)
+            
+            count += 1
+            
+            if (count % 1000 == 0):
+                t2 = time.time()
+                print("t2-t1:", t2-t1)
+                print("len(Xs)=%d num_seg=%d count=%d" %(M, num_seg ,count))
+        
                 
         total, correct = evaluate(Xs, labels)
         accuracy = np.round(correct / total, 6)
