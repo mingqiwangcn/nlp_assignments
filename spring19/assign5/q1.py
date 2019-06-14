@@ -241,7 +241,7 @@ def first_20_sentences(Xs):
                 words.append(X[j])
             else:
                 words.append(' ')
-        str_words = " ".join(words)
+        str_words = "".join(words)
         print("sentence %d\r" %(i))
         print(str_words)
     
