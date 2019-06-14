@@ -219,12 +219,37 @@ def evaluate(Xs, labels):
         total += len(b)
         correct += np.sum(b == label)
     return total, correct
+
+
+def top_200_segs(seg_dict):
+    sorted_segs = sorted(seg_dict.items(), key=lambda x: x[1], reverse = True)
+    top_200 = sorted_segs[:200]
+    segs = list(list(zip(*top_200))[0])
+    str_segs = " ".join(segs)
+    print("top 200 segs:")
+    print(str_segs)
+
+def first_20_sentences(Xs):
+    for i in range(20):
+        X, b, _ = Xs[i]
+        words = []
+        j = 0
+        N = len(X)
+        for j in range(N):
+            if b[j] == 0:
+                words.append(X[j])
+            else:
+                words.append(' ')
+        str_words = " ".join(words)
+        print("first 20 sentences:")
+        print(str_words)
+    
         
 def main():
     global num_b_changed
     global char_dist_type
     
-    num_itr = 10
+    num_itr = 1
     beta = 0.5
     gamma = 0.5
     s = 1.0
@@ -297,6 +322,10 @@ def main():
         
         if (prob_anneal_flag == 1):
             prob_tao += step_tao
-        
+    
+    top_200_segs(seg_dict)
+    
+    first_20_sentences(Xs)
+    
 if __name__ == '__main__':
     main()
