@@ -256,6 +256,8 @@ def main():
     s = 1.0
     char_dist_type = CharDistribution.UNIFORM
     start_prob_tao = 1.0
+    stop_prob_tao = 2.0
+    
     prob_anneal_flag = 0
     num_arg = len(sys.argv)
     if num_arg > 1:
@@ -275,7 +277,9 @@ def main():
     if num_arg > 6:
         start_prob_tao = float(sys.argv[6])
     if num_arg > 7:
-        prob_anneal_flag = 1
+        stop_prob_tao = float(sys.argv[7])
+    if num_arg > 8:
+        prob_anneal_flag = int(sys.argv[8])
     
     str_dist_type = (str(char_dist_type).split('.'))[1]
     str_dist_type = str_dist_type.lower()
@@ -305,12 +309,12 @@ def main():
     prob_tao = start_prob_tao
     step_tao = 0
     if (prob_anneal_flag == 1):
-        step_tao = (1.0 - prob_tao) / num_itr
+        step_tao = (stop_prob_tao - start_prob_tao) / (num_itr - 1)
         
     for itr in range(num_itr):
         if (prob_anneal_flag == 1):
-            prob_tao += step_tao
             print("prob_tao=%.2f" %(prob_tao))
+            
         num_b_changed = 0
         t1 = time.time()
         for X, b, last_info in Xs:
@@ -323,7 +327,10 @@ def main():
         accuracy = np.round(correct / total, 6)
         print("itr=%d num_changed=%d num_seg=%d accuracy=%d/%d=%.6f time=%.3f" \
                %(itr, num_b_changed, num_seg, correct, total, accuracy, t2-t1))
-    
+        
+        if (prob_anneal_flag == 1):
+            prob_tao += step_tao
+            
     top_200_segs(seg_dict)
     
     first_20_sentences(Xs)
