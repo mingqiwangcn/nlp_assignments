@@ -150,7 +150,7 @@ def choose_1_prob(X, last_info, b, i, r1, r2, s, seg_dict, beta, gamma, char_pro
     y_next = X[i+1:r2+1]
     num_y_prev_o = 0
     if y_prev in seg_dict:
-        seg_dict[y_prev]
+        num_y_prev_o = seg_dict[y_prev]
     num_y_next_o = 0
     if y_next in seg_dict:
         num_y_next_o = seg_dict[y_next]
