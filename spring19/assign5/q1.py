@@ -237,10 +237,10 @@ def first_20_sentences(Xs):
         j = 0
         N = len(X)
         for j in range(N):
-            if b[j] == 0:
-                words.append(X[j])
-            else:
+            words.append(X[j])
+            if b[j] == 1:
                 words.append(' ')
+                
         str_words = "".join(words)
         print("sentence %d\r" %(i))
         print(str_words)
